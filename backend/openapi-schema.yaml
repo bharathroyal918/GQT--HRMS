@@ -1,0 +1,5009 @@
+openapi: 3.0.3
+info:
+  title: GQT HRMS & Recruitment CRM Platform API
+  version: 1.0.0
+  description: Production REST API for recruitment CRM, job verification, student
+    eligibility, interviews, placements, and Student Portal integration.
+paths:
+  /api/v1/auth/login/:
+    post:
+      operationId: auth_login_create
+      description: Authenticates staff credentials, issues SimpleJWT tokens, and sets
+        secure HttpOnly cookies.
+      summary: User Authentication & Cookie Issuance
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LoginInputRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/auth/logout/:
+    post:
+      operationId: auth_logout_create
+      description: Terminates session, blacklists refresh token, and purges HttpOnly
+        authentication cookies.
+      summary: User Session Invalidation & Logout
+      tags:
+      - auth
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutSuccessResponse'
+          description: ''
+  /api/v1/auth/me/:
+    get:
+      operationId: auth_me_retrieve
+      description: Returns the profile and role assignments of the currently authenticated
+        user.
+      summary: Retrieve Current User Profile
+      tags:
+      - auth
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+  /api/v1/auth/token/refresh/:
+    post:
+      operationId: auth_token_refresh_create
+      description: Refreshes access token via HttpOnly refresh cookie.
+      summary: Silent Token Refresh
+      tags:
+      - auth
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefreshSuccessResponse'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefreshErrorResponse'
+          description: ''
+  /api/v1/auth/users/:
+    get:
+      operationId: auth_users_list
+      description: Administrative directory of staff accounts and staff creation gate.
+      summary: List Staff Accounts
+      tags:
+      - auth
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserProfile'
+          description: ''
+    post:
+      operationId: auth_users_create
+      description: Administrative directory of staff accounts and staff creation gate.
+      summary: Provision New Staff Account
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProvisionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserProvisionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserProvisionRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+  /api/v1/auth/users/{user_id}/:
+    get:
+      operationId: auth_users_retrieve
+      description: Administrative retrieval and status updates for a specific user.
+      summary: Retrieve Staff Account Details
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - auth
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserNotFoundResponse'
+          description: ''
+    patch:
+      operationId: auth_users_partial_update
+      description: Administrative retrieval and status updates for a specific user.
+      summary: Update Staff Account Active Status
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserStatusUpdateInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserStatusUpdateInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserStatusUpdateInputRequest'
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserNotFoundResponsePatch'
+          description: ''
+  /api/v1/auth/users/{user_id}/roles/:
+    post:
+      operationId: auth_users_roles_create
+      description: Assign or revoke an operational role for a user.
+      summary: Assign Role to Staff Account
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleAssignmentInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RoleAssignmentInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RoleAssignmentInputRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserNotFoundRoleAssign'
+          description: ''
+    delete:
+      operationId: auth_users_roles_destroy
+      description: Assign or revoke an operational role for a user.
+      summary: Revoke Role from Staff Account
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - auth
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserNotFoundRoleRevoke'
+          description: ''
+  /api/v1/creatives/metrics/:
+    get:
+      operationId: creatives_metrics_retrieve
+      description: Creative Studio analytics and throughput KPI aggregations.
+      summary: Creative Studio Analytics & Throughput Metrics
+      tags:
+      - creatives
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreativeStudioMetricsResponse'
+          description: ''
+  /api/v1/creatives/queues/designer/:
+    get:
+      operationId: creatives_queues_designer_list
+      description: Requisitions actively assigned to the authenticated designer.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - creatives
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCreativeRequestListList'
+          description: ''
+  /api/v1/creatives/queues/handoff/:
+    get:
+      operationId: creatives_queues_handoff_list
+      description: Approved requisitions ready for campus drive collateral distribution.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - creatives
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCreativeRequestListList'
+          description: ''
+  /api/v1/creatives/queues/review/:
+    get:
+      operationId: creatives_queues_review_list
+      description: Asset versions currently in review awaiting compliance evaluation.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - creatives
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCreativeAssetVersionDetailList'
+          description: ''
+  /api/v1/creatives/queues/triage/:
+    get:
+      operationId: creatives_queues_triage_list
+      description: Requisitions in SUBMITTED state awaiting designer assignment.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - creatives
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCreativeRequestListList'
+          description: ''
+  /api/v1/creatives/requests/:
+    get:
+      operationId: creatives_requests_list
+      description: Manage recruitment creative marketing requisitions.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - creatives
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCreativeRequestListList'
+          description: ''
+    post:
+      operationId: creatives_requests_create
+      description: Manage recruitment creative marketing requisitions.
+      tags:
+      - creatives
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCreativeRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateCreativeRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateCreativeRequestRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateCreativeRequest'
+          description: ''
+  /api/v1/creatives/requests/{id}/:
+    get:
+      operationId: creatives_requests_retrieve
+      description: Manage recruitment creative marketing requisitions.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Creative Requisition.
+        required: true
+      tags:
+      - creatives
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreativeRequestDetail'
+          description: ''
+    put:
+      operationId: creatives_requests_update
+      description: Manage recruitment creative marketing requisitions.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Creative Requisition.
+        required: true
+      tags:
+      - creatives
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCreativeRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UpdateCreativeRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UpdateCreativeRequestRequest'
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateCreativeRequest'
+          description: ''
+    patch:
+      operationId: creatives_requests_partial_update
+      description: Manage recruitment creative marketing requisitions.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Creative Requisition.
+        required: true
+      tags:
+      - creatives
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateCreativeRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateCreativeRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateCreativeRequestRequest'
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateCreativeRequest'
+          description: ''
+    delete:
+      operationId: creatives_requests_destroy
+      description: Manage recruitment creative marketing requisitions.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Creative Requisition.
+        required: true
+      tags:
+      - creatives
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/creatives/requests/{id}/assign/:
+    post:
+      operationId: creatives_requests_assign_create
+      description: Triage and assign requisition to a graphic designer.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Creative Requisition.
+        required: true
+      tags:
+      - creatives
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreativeRequestDetail'
+          description: ''
+  /api/v1/creatives/requests/{id}/cancel/:
+    post:
+      operationId: creatives_requests_cancel_create
+      description: Cancel requisition with documented justification.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Creative Requisition.
+        required: true
+      tags:
+      - creatives
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreativeRequestDetail'
+          description: ''
+  /api/v1/creatives/requests/{id}/handoff/:
+    post:
+      operationId: creatives_requests_handoff_create
+      description: Mark approved requisition ready for campus drive collateral.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Creative Requisition.
+        required: true
+      tags:
+      - creatives
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreativeRequestDetail'
+          description: ''
+  /api/v1/creatives/requests/{id}/submit/:
+    post:
+      operationId: creatives_requests_submit_create
+      description: Submit draft requisition for design triage.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Creative Requisition.
+        required: true
+      tags:
+      - creatives
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreativeRequestDetail'
+          description: ''
+  /api/v1/creatives/requests/{id}/upload_version/:
+    post:
+      operationId: creatives_requests_upload_version_create
+      description: Upload a new design asset deliverable version.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Creative Requisition.
+        required: true
+      tags:
+      - creatives
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreativeRequestDetail'
+          description: ''
+  /api/v1/creatives/versions/{id}/:
+    get:
+      operationId: creatives_versions_retrieve
+      description: Manage asset version reviews, compliance checks, and secure downloads.
+      summary: Retrieve Asset Version Detail
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Creative Asset Version.
+        required: true
+      tags:
+      - creatives
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreativeAssetVersionDetail'
+          description: ''
+  /api/v1/creatives/versions/{id}/approve/:
+    post:
+      operationId: creatives_versions_approve_create
+      description: Authorize asset version. Enforces SoD and all 4 checks PASSED.
+      summary: Approve Deliverable Asset Version
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Creative Asset Version.
+        required: true
+      tags:
+      - creatives
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveVersionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ApproveVersionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ApproveVersionRequest'
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreativeAssetVersionDetail'
+          description: ''
+  /api/v1/creatives/versions/{id}/checks/{check_type}/:
+    post:
+      operationId: creatives_versions_checks_create
+      description: Evaluate a specific compliance check (PASSED/FLAGGED).
+      summary: Evaluate Design Compliance Check
+      parameters:
+      - in: path
+        name: check_type
+        schema:
+          type: string
+        description: Design compliance check type
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Creative Asset Version.
+        required: true
+      tags:
+      - creatives
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluateCheckRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EvaluateCheckRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EvaluateCheckRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DesignComplianceCheck'
+          description: ''
+  /api/v1/creatives/versions/{id}/download/:
+    get:
+      operationId: creatives_versions_download_retrieve
+      description: Stream validated asset file with nosniff and defensive headers.
+      summary: Securely Download Asset Version File
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Creative Asset Version.
+        required: true
+      tags:
+      - creatives
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/creatives/versions/{id}/request_changes/:
+    post:
+      operationId: creatives_versions_request_changes_create
+      description: Request revisions from designer with required feedback.
+      summary: Request Changes on Asset Version
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Creative Asset Version.
+        required: true
+      tags:
+      - creatives
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestChangesRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RequestChangesRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RequestChangesRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreativeAssetVersionDetail'
+          description: ''
+  /api/v1/crm/companies/:
+    get:
+      operationId: crm_companies_list
+      description: List hiring partner companies or create a new prospect company.
+      summary: List Target Companies
+      parameters:
+      - in: query
+        name: assigned_to
+        schema:
+          type: string
+        description: Filter by assigned executive UUID
+      - in: query
+        name: industry
+        schema:
+          type: string
+        description: Filter by industry category
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Search term matching name, website or domain
+      - in: query
+        name: source
+        schema:
+          type: string
+        description: Filter by acquisition channel
+      - in: query
+        name: status
+        schema:
+          type: string
+        description: Filter by company lifecycle status
+      - in: query
+        name: tier
+        schema:
+          type: string
+        description: Filter by company tier
+      tags:
+      - crm
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCompanyListList'
+          description: ''
+    post:
+      operationId: crm_companies_create
+      description: List hiring partner companies or create a new prospect company.
+      summary: Create Target Company
+      tags:
+      - crm
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompanyCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CompanyCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CompanyCreateRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyDetail'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/crm/companies/{company_id}/:
+    get:
+      operationId: crm_companies_retrieve
+      description: Retrieve, update, or soft-delete a specific hiring partner company.
+      summary: Get Company Detail
+      parameters:
+      - in: path
+        name: company_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - crm
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyDetail'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    patch:
+      operationId: crm_companies_partial_update
+      description: Retrieve, update, or soft-delete a specific hiring partner company.
+      summary: Update Company
+      parameters:
+      - in: path
+        name: company_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - crm
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCompanyUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCompanyUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCompanyUpdateRequest'
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyDetail'
+          description: ''
+    delete:
+      operationId: crm_companies_destroy
+      description: Retrieve, update, or soft-delete a specific hiring partner company.
+      summary: Soft Delete Company
+      parameters:
+      - in: path
+        name: company_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - crm
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/crm/companies/{company_id}/contacts/:
+    get:
+      operationId: crm_companies_contacts_list
+      description: List or add HR recruiters and talent acquisition contacts for a
+        specific company.
+      summary: List Company HR Contacts
+      parameters:
+      - in: path
+        name: company_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - crm
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HRContact'
+          description: ''
+    post:
+      operationId: crm_companies_contacts_create
+      description: List or add HR recruiters and talent acquisition contacts for a
+        specific company.
+      summary: Create Company HR Contact
+      parameters:
+      - in: path
+        name: company_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - crm
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HRContactCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/HRContactCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/HRContactCreateRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HRContact'
+          description: ''
+  /api/v1/crm/companies/{company_id}/outreach/:
+    get:
+      operationId: crm_companies_outreach_list
+      description: List or log outreach touchpoints (calls, emails, LinkedIn InMails)
+        for a company.
+      summary: List Company Outreach Activities
+      parameters:
+      - in: path
+        name: company_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - crm
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutreachActivity'
+          description: ''
+    post:
+      operationId: crm_companies_outreach_create
+      description: List or log outreach touchpoints (calls, emails, LinkedIn InMails)
+        for a company.
+      summary: Log Outreach Activity Touchpoint
+      parameters:
+      - in: path
+        name: company_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - crm
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OutreachActivityCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OutreachActivityCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OutreachActivityCreateRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutreachActivity'
+          description: ''
+  /api/v1/crm/companies/check-duplicate/:
+    post:
+      operationId: crm_companies_check_duplicate_create
+      description: Pre-flight endpoint analyzing company name and website against
+        database for duplicates.
+      summary: Check Duplicate Company
+      tags:
+      - crm
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DuplicateCheckInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DuplicateCheckInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DuplicateCheckInputRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/crm/contacts/{contact_id}/:
+    get:
+      operationId: crm_contacts_retrieve
+      description: Retrieve, update or soft-delete a specific HR contact.
+      summary: Get HR Contact Detail
+      parameters:
+      - in: path
+        name: contact_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - crm
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HRContact'
+          description: ''
+    patch:
+      operationId: crm_contacts_partial_update
+      description: Retrieve, update or soft-delete a specific HR contact.
+      summary: Update HR Contact
+      parameters:
+      - in: path
+        name: contact_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - crm
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedHRContactCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedHRContactCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedHRContactCreateRequest'
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HRContact'
+          description: ''
+    delete:
+      operationId: crm_contacts_destroy
+      description: Retrieve, update or soft-delete a specific HR contact.
+      summary: Soft Delete HR Contact
+      parameters:
+      - in: path
+        name: contact_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - crm
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/crm/follow-ups/:
+    get:
+      operationId: crm_follow_ups_list
+      description: List actionable follow-up tasks with state filters or schedule
+        a new task.
+      summary: List Actionable Follow-Up Tasks
+      parameters:
+      - in: query
+        name: assigned_to
+        schema:
+          type: string
+        description: Assigned executive UUID
+      - in: query
+        name: company
+        schema:
+          type: string
+        description: Target company UUID
+      - in: query
+        name: filter_type
+        schema:
+          type: string
+        description: '''due_today'', ''overdue'', or ''upcoming'''
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: status
+        schema:
+          type: string
+        description: Task status (PENDING, COMPLETED, CANCELLED)
+      tags:
+      - crm
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedFollowUpList'
+          description: ''
+    post:
+      operationId: crm_follow_ups_create
+      description: List actionable follow-up tasks with state filters or schedule
+        a new task.
+      summary: Schedule Follow-Up Task
+      tags:
+      - crm
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FollowUpCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FollowUpCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FollowUpCreateRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FollowUp'
+          description: ''
+  /api/v1/crm/follow-ups/{follow_up_id}/:
+    get:
+      operationId: crm_follow_ups_retrieve
+      description: Retrieve a specific follow-up task.
+      summary: Get Follow-Up Detail
+      parameters:
+      - in: path
+        name: follow_up_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - crm
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FollowUp'
+          description: ''
+  /api/v1/crm/follow-ups/{follow_up_id}/cancel/:
+    post:
+      operationId: crm_follow_ups_cancel_create
+      description: Cancel an active follow-up task with mandatory reason.
+      summary: Cancel Follow-Up Task
+      parameters:
+      - in: path
+        name: follow_up_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - crm
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FollowUpCancelRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FollowUpCancelRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FollowUpCancelRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FollowUp'
+          description: ''
+  /api/v1/crm/follow-ups/{follow_up_id}/complete/:
+    post:
+      operationId: crm_follow_ups_complete_create
+      description: Mark an active follow-up task as completed.
+      summary: Complete Follow-Up Task
+      parameters:
+      - in: path
+        name: follow_up_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - crm
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FollowUpCompleteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FollowUpCompleteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FollowUpCompleteRequest'
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FollowUp'
+          description: ''
+  /api/v1/health/:
+    get:
+      operationId: health_retrieve
+      description: Public health check confirming the application is online. Exposes
+        no secrets.
+      summary: Service Liveness Probe
+      tags:
+      - health
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheckResponse'
+          description: ''
+  /api/v1/jobs/approval-queue/:
+    get:
+      operationId: jobs_approval_queue_list
+      description: Queue of jobs that have passed all 5 checks and await Placement
+        Head approval.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - jobs
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedJobRequirementListList'
+          description: ''
+  /api/v1/jobs/metrics/:
+    get:
+      operationId: jobs_metrics_retrieve
+      description: Real-time pipeline metrics and verification statistics based on
+        persisted data.
+      summary: Job Workflow & Verification Pipeline Metrics
+      tags:
+      - jobs
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobWorkflowMetricsResponse'
+          description: ''
+  /api/v1/jobs/requirements/:
+    get:
+      operationId: jobs_requirements_list
+      description: ViewSet managing JobRequirement lifecycle, verification gates,
+        and approvals.
+      summary: List and filter job requirements with pagination
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - jobs
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedJobRequirementListList'
+          description: ''
+    post:
+      operationId: jobs_requirements_create
+      description: ViewSet managing JobRequirement lifecycle, verification gates,
+        and approvals.
+      summary: Create a new job requirement draft
+      tags:
+      - jobs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobRequirementCreateUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/JobRequirementCreateUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/JobRequirementCreateUpdateRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobRequirementCreateUpdate'
+          description: ''
+  /api/v1/jobs/requirements/{id}/:
+    get:
+      operationId: jobs_requirements_retrieve
+      description: ViewSet managing JobRequirement lifecycle, verification gates,
+        and approvals.
+      summary: Retrieve detailed job requirement with checks and history
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+        required: true
+      tags:
+      - jobs
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobRequirementDetail'
+          description: ''
+    put:
+      operationId: jobs_requirements_update
+      description: ViewSet managing JobRequirement lifecycle, verification gates,
+        and approvals.
+      summary: Update job draft or changes-requested requirement
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+        required: true
+      tags:
+      - jobs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobRequirementCreateUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/JobRequirementCreateUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/JobRequirementCreateUpdateRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobRequirementCreateUpdate'
+          description: ''
+    patch:
+      operationId: jobs_requirements_partial_update
+      description: ViewSet managing JobRequirement lifecycle, verification gates,
+        and approvals.
+      summary: Partially update job draft requirement
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+        required: true
+      tags:
+      - jobs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedJobRequirementCreateUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedJobRequirementCreateUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedJobRequirementCreateUpdateRequest'
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobRequirementCreateUpdate'
+          description: ''
+    delete:
+      operationId: jobs_requirements_destroy
+      description: ViewSet managing JobRequirement lifecycle, verification gates,
+        and approvals.
+      summary: Delete a draft job requirement
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+        required: true
+      tags:
+      - jobs
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/jobs/requirements/{id}/amend/:
+    post:
+      operationId: jobs_requirements_amend_create
+      description: ViewSet managing JobRequirement lifecycle, verification gates,
+        and approvals.
+      summary: Amend an already approved job requirement (creates new revision)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+        required: true
+      tags:
+      - jobs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobAmendRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/JobAmendRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/JobAmendRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobRequirementDetail'
+          description: ''
+  /api/v1/jobs/requirements/{id}/approve/:
+    post:
+      operationId: jobs_requirements_approve_create
+      description: ViewSet managing JobRequirement lifecycle, verification gates,
+        and approvals.
+      summary: Approve a verified job requirement (Segregation of Duties enforced)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+        required: true
+      tags:
+      - jobs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobWorkflowActionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/JobWorkflowActionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/JobWorkflowActionRequest'
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobRequirementDetail'
+          description: ''
+  /api/v1/jobs/requirements/{id}/assign-verifier/:
+    post:
+      operationId: jobs_requirements_assign_verifier_create
+      description: ViewSet managing JobRequirement lifecycle, verification gates,
+        and approvals.
+      summary: Assign a verifier to conduct the 5-point verification review
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+        required: true
+      tags:
+      - jobs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobAssignVerifierRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/JobAssignVerifierRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/JobAssignVerifierRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobRequirementDetail'
+          description: ''
+  /api/v1/jobs/requirements/{id}/checks/:
+    get:
+      operationId: jobs_requirements_checks_list
+      description: ViewSet managing JobRequirement lifecycle, verification gates,
+        and approvals.
+      summary: Retrieve all five verification checks for this job
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - jobs
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedJobVerificationCheckList'
+          description: ''
+  /api/v1/jobs/requirements/{id}/checks/{check_type}/:
+    post:
+      operationId: jobs_requirements_checks_create
+      description: ViewSet managing JobRequirement lifecycle, verification gates,
+        and approvals.
+      summary: Update a specific 5-point verification check evaluation
+      parameters:
+      - in: path
+        name: check_type
+        schema:
+          type: string
+        description: Verification check type enum
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+        required: true
+      tags:
+      - jobs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobVerificationCheckUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/JobVerificationCheckUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/JobVerificationCheckUpdateRequest'
+        required: true
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobVerificationCheck'
+          description: ''
+  /api/v1/jobs/requirements/{id}/history/:
+    get:
+      operationId: jobs_requirements_history_list
+      description: ViewSet managing JobRequirement lifecycle, verification gates,
+        and approvals.
+      summary: Retrieve append-only workflow state history for this job
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - jobs
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedJobWorkflowHistoryList'
+          description: ''
+  /api/v1/jobs/requirements/{id}/reject/:
+    post:
+      operationId: jobs_requirements_reject_create
+      description: ViewSet managing JobRequirement lifecycle, verification gates,
+        and approvals.
+      summary: Reject a job requirement with documented justification
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+        required: true
+      tags:
+      - jobs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobWorkflowActionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/JobWorkflowActionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/JobWorkflowActionRequest'
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobRequirementDetail'
+          description: ''
+  /api/v1/jobs/requirements/{id}/request-changes/:
+    post:
+      operationId: jobs_requirements_request_changes_create
+      description: ViewSet managing JobRequirement lifecycle, verification gates,
+        and approvals.
+      summary: Request changes on a job requirement with mandatory feedback
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+        required: true
+      tags:
+      - jobs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobWorkflowActionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/JobWorkflowActionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/JobWorkflowActionRequest'
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobRequirementDetail'
+          description: ''
+  /api/v1/jobs/requirements/{id}/submit/:
+    post:
+      operationId: jobs_requirements_submit_create
+      description: ViewSet managing JobRequirement lifecycle, verification gates,
+        and approvals.
+      summary: Submit job requirement for 5-point verification review
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+        required: true
+      tags:
+      - jobs
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobRequirementDetail'
+          description: ''
+  /api/v1/jobs/verification-queue/:
+    get:
+      operationId: jobs_verification_queue_list
+      description: Queue of jobs currently pending or undergoing 5-point verification
+        review.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - jobs
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedJobRequirementListList'
+          description: ''
+  /api/v1/portal/status/:
+    get:
+      operationId: portal_status_retrieve
+      description: Diagnostic endpoint checking Student Portal configuration and availability.
+      summary: Student Portal Integration Health & Config Status
+      tags:
+      - portal
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/ready/:
+    get:
+      operationId: ready_retrieve
+      description: Verifies database responsiveness before routing live traffic.
+      summary: Service Readiness Probe
+      tags:
+      - ready
+      security:
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+          description: ''
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessErrorResponse'
+          description: ''
+components:
+  schemas:
+    ApproveVersionRequest:
+      type: object
+      properties:
+        review_feedback:
+          type: string
+    AspectRatioEnum:
+      enum:
+      - '1:1'
+      - '16:9'
+      - '9:16'
+      - '4:5'
+      - A4_PORTRAIT
+      - CUSTOM
+      type: string
+      description: |-
+        * `1:1` - 1:1 Square
+        * `16:9` - 16:9 Landscape
+        * `9:16` - 9:16 Story / Reel
+        * `4:5` - 4:5 Social Banner
+        * `A4_PORTRAIT` - A4 Print Format
+        * `CUSTOM` - Custom Aspect Ratio
+    ChannelEnum:
+      enum:
+      - PHONE
+      - EMAIL
+      - WHATSAPP
+      - LINKEDIN
+      - IN_PERSON
+      - OTHER
+      type: string
+      description: |-
+        * `PHONE` - Phone Call
+        * `EMAIL` - Email Outreach
+        * `WHATSAPP` - WhatsApp Message
+        * `LINKEDIN` - LinkedIn Outreach
+        * `IN_PERSON` - In-Person Meeting
+        * `OTHER` - Other Channel
+    CompanyCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        website:
+          type: string
+          format: uri
+          maxLength: 500
+        industry:
+          $ref: '#/components/schemas/IndustryEnum'
+        source:
+          $ref: '#/components/schemas/SourceEnum'
+        status:
+          $ref: '#/components/schemas/StatusF03Enum'
+        tier:
+          $ref: '#/components/schemas/TierEnum'
+        assigned_to:
+          type: string
+          format: uuid
+          description: Acquisition / Calling executive responsible for this account.
+          nullable: true
+        notes:
+          type: string
+        allow_duplicate:
+          type: boolean
+          writeOnly: true
+          default: false
+      required:
+      - name
+    CompanyDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Cryptographically secure, non-enumerable primary key.
+        name:
+          type: string
+          maxLength: 255
+        normalized_name:
+          type: string
+          readOnly: true
+          description: Automated lowercase canonical string for duplicate detection.
+        website:
+          type: string
+          format: uri
+          maxLength: 500
+        canonical_domain:
+          type: string
+          readOnly: true
+          description: Normalized root domain extracted from website for duplicate
+            matching.
+        industry:
+          $ref: '#/components/schemas/IndustryEnum'
+        source:
+          $ref: '#/components/schemas/SourceEnum'
+        status:
+          $ref: '#/components/schemas/StatusF03Enum'
+        tier:
+          $ref: '#/components/schemas/TierEnum'
+        assigned_to:
+          allOf:
+          - $ref: '#/components/schemas/UserProfile'
+          readOnly: true
+        notes:
+          type: string
+        contacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/HRContact'
+          readOnly: true
+        recent_outreach:
+          type: array
+          items:
+            $ref: '#/components/schemas/OutreachActivity'
+          readOnly: true
+        active_follow_ups:
+          type: array
+          items:
+            $ref: '#/components/schemas/FollowUp'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: UTC timestamp when the record was initially created.
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: UTC timestamp when the record was last modified.
+      required:
+      - active_follow_ups
+      - assigned_to
+      - canonical_domain
+      - contacts
+      - created_at
+      - id
+      - name
+      - normalized_name
+      - recent_outreach
+      - updated_at
+    CompanyList:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Cryptographically secure, non-enumerable primary key.
+        name:
+          type: string
+          maxLength: 255
+        normalized_name:
+          type: string
+          readOnly: true
+          description: Automated lowercase canonical string for duplicate detection.
+        website:
+          type: string
+          format: uri
+          maxLength: 500
+        canonical_domain:
+          type: string
+          readOnly: true
+          description: Normalized root domain extracted from website for duplicate
+            matching.
+        industry:
+          $ref: '#/components/schemas/IndustryEnum'
+        source:
+          $ref: '#/components/schemas/SourceEnum'
+        status:
+          $ref: '#/components/schemas/StatusF03Enum'
+        tier:
+          $ref: '#/components/schemas/TierEnum'
+        assigned_to:
+          type: string
+          format: uuid
+          description: Acquisition / Calling executive responsible for this account.
+          nullable: true
+        assigned_to_name:
+          type: string
+          readOnly: true
+        contacts_count:
+          type: integer
+          readOnly: true
+          default: 0
+        outreach_count:
+          type: integer
+          readOnly: true
+          default: 0
+        pending_followups_count:
+          type: integer
+          readOnly: true
+          default: 0
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: UTC timestamp when the record was initially created.
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: UTC timestamp when the record was last modified.
+      required:
+      - assigned_to_name
+      - canonical_domain
+      - contacts_count
+      - created_at
+      - id
+      - name
+      - normalized_name
+      - outreach_count
+      - pending_followups_count
+      - updated_at
+    CreateCreativeRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        brief:
+          type: string
+        creative_type:
+          allOf:
+          - $ref: '#/components/schemas/CreativeTypeEnum'
+          default: JOB_FLYER
+        aspect_ratio:
+          allOf:
+          - $ref: '#/components/schemas/AspectRatioEnum'
+          default: '1:1'
+        deliverable_format:
+          allOf:
+          - $ref: '#/components/schemas/DeliverableFormatEnum'
+          default: PNG
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/Priority6b8Enum'
+          default: MEDIUM
+        target_completion_date:
+          type: string
+          format: date
+          nullable: true
+        job_requirement_id:
+          type: string
+          format: uuid
+          nullable: true
+        company_id:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - brief
+      - title
+    CreateCreativeRequestRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        brief:
+          type: string
+          minLength: 1
+        creative_type:
+          allOf:
+          - $ref: '#/components/schemas/CreativeTypeEnum'
+          default: JOB_FLYER
+        aspect_ratio:
+          allOf:
+          - $ref: '#/components/schemas/AspectRatioEnum'
+          default: '1:1'
+        deliverable_format:
+          allOf:
+          - $ref: '#/components/schemas/DeliverableFormatEnum'
+          default: PNG
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/Priority6b8Enum'
+          default: MEDIUM
+        target_completion_date:
+          type: string
+          format: date
+          nullable: true
+        job_requirement_id:
+          type: string
+          format: uuid
+          nullable: true
+        company_id:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - brief
+      - title
+    CreativeAssetVersionDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        version_number:
+          type: integer
+          readOnly: true
+        original_filename:
+          type: string
+          readOnly: true
+        file_size_bytes:
+          type: integer
+          readOnly: true
+        mime_type:
+          type: string
+          readOnly: true
+        sha256_hash:
+          type: string
+          readOnly: true
+        width:
+          type: integer
+          readOnly: true
+          nullable: true
+        height:
+          type: integer
+          readOnly: true
+          nullable: true
+        designer_notes:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/CreativeAssetVersionDetailStatusEnum'
+          readOnly: true
+        uploader:
+          type: string
+          format: uuid
+          description: Cryptographically random UUIDv4 primary key.
+          readOnly: true
+        uploader_name:
+          type: string
+          readOnly: true
+        reviewed_by:
+          type: string
+          format: uuid
+          description: Cryptographically random UUIDv4 primary key.
+          readOnly: true
+          nullable: true
+        reviewed_by_name:
+          type: string
+          readOnly: true
+        reviewed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        review_feedback:
+          type: string
+          readOnly: true
+        compliance_checks:
+          type: array
+          items:
+            $ref: '#/components/schemas/DesignComplianceCheck'
+          readOnly: true
+        all_checks_passed:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - all_checks_passed
+      - compliance_checks
+      - created_at
+      - designer_notes
+      - file_size_bytes
+      - height
+      - id
+      - mime_type
+      - original_filename
+      - review_feedback
+      - reviewed_at
+      - reviewed_by
+      - reviewed_by_name
+      - sha256_hash
+      - status
+      - uploader
+      - uploader_name
+      - version_number
+      - width
+    CreativeAssetVersionDetailStatusEnum:
+      enum:
+      - DRAFT
+      - SUBMITTED_FOR_REVIEW
+      - CHANGES_REQUESTED
+      - APPROVED
+      - SUPERSEDED
+      type: string
+      description: |-
+        * `DRAFT` - Draft
+        * `SUBMITTED_FOR_REVIEW` - Submitted for Review
+        * `CHANGES_REQUESTED` - Changes Requested
+        * `APPROVED` - Approved
+        * `SUPERSEDED` - Superseded
+    CreativeRequestDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        request_code:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        creative_type:
+          allOf:
+          - $ref: '#/components/schemas/CreativeTypeEnum'
+          readOnly: true
+        aspect_ratio:
+          allOf:
+          - $ref: '#/components/schemas/AspectRatioEnum'
+          readOnly: true
+        deliverable_format:
+          allOf:
+          - $ref: '#/components/schemas/DeliverableFormatEnum'
+          readOnly: true
+        brief:
+          type: string
+          readOnly: true
+          description: Detailed creative instructions, role highlights, candidate
+            requirements, and visual specifications.
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/Priority6b8Enum'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusFd0Enum'
+          readOnly: true
+        target_completion_date:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+        cancellation_reason:
+          type: string
+          readOnly: true
+        job_requirement:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+          readOnly: true
+          nullable: true
+        job_title:
+          type: string
+          readOnly: true
+          default: ''
+        company:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+          readOnly: true
+          nullable: true
+        company_name:
+          type: string
+          readOnly: true
+          default: ''
+        created_by:
+          type: string
+          format: uuid
+          description: Cryptographically random UUIDv4 primary key.
+          readOnly: true
+        created_by_name:
+          type: string
+          readOnly: true
+        assigned_designer:
+          type: string
+          format: uuid
+          description: Cryptographically random UUIDv4 primary key.
+          readOnly: true
+          nullable: true
+        assigned_designer_name:
+          type: string
+          readOnly: true
+        active_version:
+          allOf:
+          - $ref: '#/components/schemas/CreativeAssetVersionDetail'
+          readOnly: true
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreativeAssetVersionDetail'
+          readOnly: true
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreativeWorkflowHistory'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - active_version
+      - aspect_ratio
+      - assigned_designer
+      - assigned_designer_name
+      - brief
+      - cancellation_reason
+      - company
+      - company_name
+      - created_at
+      - created_by
+      - created_by_name
+      - creative_type
+      - deliverable_format
+      - history
+      - id
+      - job_requirement
+      - job_title
+      - priority
+      - request_code
+      - status
+      - target_completion_date
+      - title
+      - updated_at
+      - versions
+    CreativeRequestList:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        request_code:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        creative_type:
+          allOf:
+          - $ref: '#/components/schemas/CreativeTypeEnum'
+          readOnly: true
+        aspect_ratio:
+          allOf:
+          - $ref: '#/components/schemas/AspectRatioEnum'
+          readOnly: true
+        deliverable_format:
+          allOf:
+          - $ref: '#/components/schemas/DeliverableFormatEnum'
+          readOnly: true
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/Priority6b8Enum'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusFd0Enum'
+          readOnly: true
+        target_completion_date:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+        job_requirement:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+          readOnly: true
+          nullable: true
+        job_title:
+          type: string
+          readOnly: true
+          default: ''
+        company:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+          readOnly: true
+          nullable: true
+        company_name:
+          type: string
+          readOnly: true
+          default: ''
+        created_by:
+          type: string
+          format: uuid
+          description: Cryptographically random UUIDv4 primary key.
+          readOnly: true
+        created_by_name:
+          type: string
+          readOnly: true
+        assigned_designer:
+          type: string
+          format: uuid
+          description: Cryptographically random UUIDv4 primary key.
+          readOnly: true
+          nullable: true
+        assigned_designer_name:
+          type: string
+          readOnly: true
+        active_version_number:
+          type: integer
+          nullable: true
+          readOnly: true
+        versions_count:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - active_version_number
+      - aspect_ratio
+      - assigned_designer
+      - assigned_designer_name
+      - company
+      - company_name
+      - created_at
+      - created_by
+      - created_by_name
+      - creative_type
+      - deliverable_format
+      - id
+      - job_requirement
+      - job_title
+      - priority
+      - request_code
+      - status
+      - target_completion_date
+      - title
+      - updated_at
+      - versions_count
+    CreativeStudioMetricsResponse:
+      type: object
+      properties:
+        total_requests:
+          type: integer
+        triage_queue_count:
+          type: integer
+        in_design_count:
+          type: integer
+        in_review_count:
+          type: integer
+        approved_count:
+          type: integer
+        ready_for_handoff_count:
+          type: integer
+        total_asset_versions:
+          type: integer
+        pending_versions_review:
+          type: integer
+      required:
+      - approved_count
+      - in_design_count
+      - in_review_count
+      - pending_versions_review
+      - ready_for_handoff_count
+      - total_asset_versions
+      - total_requests
+      - triage_queue_count
+    CreativeTypeEnum:
+      enum:
+      - JOB_FLYER
+      - WHATSAPP_BANNER
+      - INSTAGRAM_POST
+      - LINKEDIN_BANNER
+      - EMAIL_HEADER
+      - CAMPUS_POSTER
+      - CUSTOM
+      type: string
+      description: |-
+        * `JOB_FLYER` - Job Opening Flyer
+        * `WHATSAPP_BANNER` - WhatsApp Banner
+        * `INSTAGRAM_POST` - Instagram Post (1:1)
+        * `LINKEDIN_BANNER` - LinkedIn Post (16:9)
+        * `EMAIL_HEADER` - Email Header Graphic
+        * `CAMPUS_POSTER` - Campus Noticeboard Poster (A4)
+        * `CUSTOM` - Custom Marketing Asset
+    CreativeWorkflowHistory:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        from_status:
+          type: string
+          readOnly: true
+        to_status:
+          type: string
+          readOnly: true
+        actor:
+          type: string
+          format: uuid
+          description: Cryptographically random UUIDv4 primary key.
+          readOnly: true
+          nullable: true
+        actor_name:
+          type: string
+          readOnly: true
+        action:
+          type: string
+          readOnly: true
+        notes:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - action
+      - actor
+      - actor_name
+      - created_at
+      - from_status
+      - id
+      - notes
+      - to_status
+    DeliverableFormatEnum:
+      enum:
+      - PNG
+      - JPEG
+      - WEBP
+      - PDF
+      - MULTI_FORMAT
+      type: string
+      description: |-
+        * `PNG` - PNG Image
+        * `JPEG` - JPEG Image
+        * `WEBP` - WebP Image
+        * `PDF` - Print-Ready PDF
+        * `MULTI_FORMAT` - Multi-Format Package
+    DesignComplianceCheck:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        check_type:
+          allOf:
+          - $ref: '#/components/schemas/DesignComplianceCheckCheckTypeEnum'
+          readOnly: true
+        check_type_display:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status6abEnum'
+          readOnly: true
+        notes:
+          type: string
+          readOnly: true
+        verified_by:
+          type: string
+          format: uuid
+          description: Cryptographically random UUIDv4 primary key.
+          readOnly: true
+          nullable: true
+        verified_by_name:
+          type: string
+          readOnly: true
+        verified_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - check_type
+      - check_type_display
+      - created_at
+      - id
+      - notes
+      - status
+      - updated_at
+      - verified_at
+      - verified_by
+      - verified_by_name
+    DesignComplianceCheckCheckTypeEnum:
+      enum:
+      - FLYER_TEXT_ACCURACY
+      - BRAND_ASSETS_COMPLIANCE
+      - QR_CODE_INTEGRITY
+      - CONTACT_DISCLOSURE
+      type: string
+      description: |-
+        * `FLYER_TEXT_ACCURACY` - Job Title, CTC & Eligibility Accuracy
+        * `BRAND_ASSETS_COMPLIANCE` - Official GQT & Company Brand Assets
+        * `QR_CODE_INTEGRITY` - QR Code Routing & Link Validation
+        * `CONTACT_DISCLOSURE` - Recruiter Contact & Zero-Fee Placement Policy
+    DuplicateCheckInputRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        website:
+          type: string
+          default: ''
+          maxLength: 500
+        exclude_company_id:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - name
+    EvaluateCheckRequest:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/Status6abEnum'
+        notes:
+          type: string
+      required:
+      - status
+    FollowUp:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Cryptographically secure, non-enumerable primary key.
+        company:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+        company_name:
+          type: string
+          readOnly: true
+        contact:
+          type: string
+          format: uuid
+          description: Follow-up remains active even if contact changes status.
+          nullable: true
+        contact_name:
+          type: string
+          readOnly: true
+        outreach_activity:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+          nullable: true
+        assigned_to:
+          type: string
+          format: uuid
+          description: Cryptographically random UUIDv4 primary key.
+        assigned_to_name:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        due_date:
+          type: string
+          format: date-time
+        priority:
+          $ref: '#/components/schemas/Priority80cEnum'
+        status:
+          $ref: '#/components/schemas/FollowUpStatusEnum'
+        is_overdue:
+          type: boolean
+          readOnly: true
+        is_due_today:
+          type: boolean
+          readOnly: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        completed_by:
+          type: string
+          format: uuid
+          description: Cryptographically random UUIDv4 primary key.
+          readOnly: true
+          nullable: true
+        cancellation_reason:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: UTC timestamp when the record was initially created.
+      required:
+      - assigned_to
+      - assigned_to_name
+      - company
+      - company_name
+      - completed_at
+      - completed_by
+      - contact_name
+      - created_at
+      - due_date
+      - id
+      - is_due_today
+      - is_overdue
+      - title
+    FollowUpCancelRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          minLength: 3
+      required:
+      - reason
+    FollowUpCompleteRequest:
+      type: object
+      properties:
+        notes:
+          type: string
+          default: ''
+    FollowUpCreateRequest:
+      type: object
+      properties:
+        company:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+        contact:
+          type: string
+          format: uuid
+          description: Follow-up remains active even if contact changes status.
+          nullable: true
+        assigned_to:
+          type: string
+          format: uuid
+          description: Cryptographically random UUIDv4 primary key.
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+        due_date:
+          type: string
+          format: date-time
+        priority:
+          $ref: '#/components/schemas/Priority80cEnum'
+      required:
+      - assigned_to
+      - company
+      - due_date
+      - title
+    FollowUpStatusEnum:
+      enum:
+      - PENDING
+      - COMPLETED
+      - RESCHEDULED
+      - CANCELLED
+      type: string
+      description: |-
+        * `PENDING` - Pending Action
+        * `COMPLETED` - Completed
+        * `RESCHEDULED` - Rescheduled
+        * `CANCELLED` - Cancelled
+    HRContact:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Cryptographically secure, non-enumerable primary key.
+        company:
+          type: string
+          format: uuid
+          description: Corporate entity employing this contact.
+        company_name:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          maxLength: 255
+        designation:
+          type: string
+          maxLength: 128
+        department:
+          type: string
+          maxLength: 128
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        phone:
+          type: string
+          maxLength: 32
+        alternate_phone:
+          type: string
+          maxLength: 32
+        linkedin_url:
+          type: string
+          format: uri
+          maxLength: 500
+        preferred_channel:
+          $ref: '#/components/schemas/PreferredChannelEnum'
+        status:
+          $ref: '#/components/schemas/StatusC48Enum'
+        is_primary:
+          type: boolean
+          description: Designates this recruiter as the primary placement point of
+            contact.
+        notes:
+          type: string
+        assigned_to:
+          type: string
+          format: uuid
+          description: Cryptographically random UUIDv4 primary key.
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: UTC timestamp when the record was initially created.
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: UTC timestamp when the record was last modified.
+      required:
+      - company
+      - company_name
+      - created_at
+      - id
+      - name
+      - updated_at
+    HRContactCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        designation:
+          type: string
+          maxLength: 128
+        department:
+          type: string
+          maxLength: 128
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        phone:
+          type: string
+          maxLength: 32
+        alternate_phone:
+          type: string
+          maxLength: 32
+        linkedin_url:
+          type: string
+          format: uri
+          maxLength: 500
+        preferred_channel:
+          $ref: '#/components/schemas/PreferredChannelEnum'
+        status:
+          $ref: '#/components/schemas/StatusC48Enum'
+        is_primary:
+          type: boolean
+          description: Designates this recruiter as the primary placement point of
+            contact.
+        notes:
+          type: string
+        assigned_to:
+          type: string
+          format: uuid
+          description: Cryptographically random UUIDv4 primary key.
+          nullable: true
+      required:
+      - name
+    HealthCheckResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        environment:
+          type: string
+        version:
+          type: string
+      required:
+      - environment
+      - status
+      - version
+    IndustryEnum:
+      enum:
+      - IT_SERVICES
+      - PRODUCT_TECH
+      - FINTECH
+      - EDTECH
+      - HEALTHCARE
+      - MANUFACTURING
+      - ECOMMERCE
+      - CONSULTING
+      - TELECOM
+      - OTHER
+      type: string
+      description: |-
+        * `IT_SERVICES` - IT Services & Consulting
+        * `PRODUCT_TECH` - Product / Software Tech
+        * `FINTECH` - FinTech & Banking
+        * `EDTECH` - EdTech & Learning
+        * `HEALTHCARE` - Healthcare & Pharma
+        * `MANUFACTURING` - Manufacturing & Core Engineering
+        * `ECOMMERCE` - E-Commerce & Retail
+        * `CONSULTING` - Management Consulting
+        * `TELECOM` - Telecommunications
+        * `OTHER` - Other Industry
+    JobAmendRequest:
+      type: object
+      description: Payload serializer for authorizing an amendment to an already approved
+        job.
+      properties:
+        reason:
+          type: string
+          minLength: 10
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          minLength: 1
+        min_ctc_lpa:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        max_ctc_lpa:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        min_cgpa:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,2})?$
+          nullable: true
+        min_percentage:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          nullable: true
+        registration_deadline:
+          type: string
+          format: date-time
+        interview_date:
+          type: string
+          format: date
+          nullable: true
+        vacancies_count:
+          type: integer
+          nullable: true
+        required_skills:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        eligible_batches:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        eligible_branches:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        job_location:
+          type: string
+        work_arrangement:
+          $ref: '#/components/schemas/WorkArrangementEnum'
+      required:
+      - reason
+    JobAssignVerifierRequest:
+      type: object
+      description: Payload serializer for delegating a job verification review.
+      properties:
+        verifier_id:
+          type: string
+          format: uuid
+          description: Cryptographically random UUIDv4 primary key.
+      required:
+      - verifier_id
+    JobRequirementCreateUpdate:
+      type: object
+      description: Payload serializer for job requirement creation and draft modification.
+      properties:
+        company:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+        title:
+          type: string
+          description: Job role / designation
+          maxLength: 255
+        description:
+          type: string
+          description: Detailed job description and responsibilities
+        role_category:
+          $ref: '#/components/schemas/RoleCategoryEnum'
+        required_skills:
+          description: List of mandatory technical and domain competencies
+        min_cgpa:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,2})?$
+          nullable: true
+          description: Minimum CGPA required (0.00 to 10.00)
+        min_percentage:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          nullable: true
+          description: Minimum aggregate percentage required (0.00 to 100.00%)
+        eligible_batches:
+          description: Eligible passing out years (e.g., ['2024', '2025'])
+        eligible_branches:
+          description: Eligible academic disciplines (e.g., ['CSE', 'ECE', 'ISE',
+            'MCA'])
+        max_backlogs_allowed:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Maximum permissible active backlogs
+        min_ctc_lpa:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+          description: Minimum annual CTC in Lakhs Per Annum (LPA)
+        max_ctc_lpa:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+          description: Maximum annual CTC in Lakhs Per Annum (LPA)
+        stipend_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+          description: Monthly stipend in INR if internship component exists
+        salary_details:
+          type: string
+          description: Breakdown of fixed, variable, perks, and probation compensation
+        job_location:
+          type: string
+          description: Primary job location or cities
+          maxLength: 255
+        work_arrangement:
+          $ref: '#/components/schemas/WorkArrangementEnum'
+        has_bond:
+          type: boolean
+          description: Whether candidates must sign an employment service agreement
+        bond_duration_months:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Duration of service bond in months
+        bond_details:
+          type: string
+          description: Terms, penalty clauses, or conditions of service bond
+        interview_rounds:
+          description: 'Ordered list of interview stages: [{''round_number'': 1, ''round_type'':
+            ''APTITUDE'', ...}]'
+        interview_process_notes:
+          type: string
+          description: Evaluation criteria, mode (online/offline), and round sequence
+        interview_date:
+          type: string
+          format: date
+          nullable: true
+          description: Scheduled date for primary campus drive or initial round
+        registration_deadline:
+          type: string
+          format: date-time
+          description: Strict cutoff timestamp for student applications
+        vacancies_count:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Estimated open positions
+      required:
+      - company
+      - description
+      - max_ctc_lpa
+      - min_ctc_lpa
+      - registration_deadline
+      - title
+    JobRequirementCreateUpdateRequest:
+      type: object
+      description: Payload serializer for job requirement creation and draft modification.
+      properties:
+        company:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+        title:
+          type: string
+          minLength: 1
+          description: Job role / designation
+          maxLength: 255
+        description:
+          type: string
+          minLength: 1
+          description: Detailed job description and responsibilities
+        role_category:
+          $ref: '#/components/schemas/RoleCategoryEnum'
+        required_skills:
+          description: List of mandatory technical and domain competencies
+        min_cgpa:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,2})?$
+          nullable: true
+          description: Minimum CGPA required (0.00 to 10.00)
+        min_percentage:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          nullable: true
+          description: Minimum aggregate percentage required (0.00 to 100.00%)
+        eligible_batches:
+          description: Eligible passing out years (e.g., ['2024', '2025'])
+        eligible_branches:
+          description: Eligible academic disciplines (e.g., ['CSE', 'ECE', 'ISE',
+            'MCA'])
+        max_backlogs_allowed:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Maximum permissible active backlogs
+        min_ctc_lpa:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+          description: Minimum annual CTC in Lakhs Per Annum (LPA)
+        max_ctc_lpa:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+          description: Maximum annual CTC in Lakhs Per Annum (LPA)
+        stipend_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+          description: Monthly stipend in INR if internship component exists
+        salary_details:
+          type: string
+          description: Breakdown of fixed, variable, perks, and probation compensation
+        job_location:
+          type: string
+          description: Primary job location or cities
+          maxLength: 255
+        work_arrangement:
+          $ref: '#/components/schemas/WorkArrangementEnum'
+        has_bond:
+          type: boolean
+          description: Whether candidates must sign an employment service agreement
+        bond_duration_months:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Duration of service bond in months
+        bond_details:
+          type: string
+          description: Terms, penalty clauses, or conditions of service bond
+        interview_rounds:
+          description: 'Ordered list of interview stages: [{''round_number'': 1, ''round_type'':
+            ''APTITUDE'', ...}]'
+        interview_process_notes:
+          type: string
+          description: Evaluation criteria, mode (online/offline), and round sequence
+        interview_date:
+          type: string
+          format: date
+          nullable: true
+          description: Scheduled date for primary campus drive or initial round
+        registration_deadline:
+          type: string
+          format: date-time
+          description: Strict cutoff timestamp for student applications
+        vacancies_count:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Estimated open positions
+      required:
+      - company
+      - description
+      - max_ctc_lpa
+      - min_ctc_lpa
+      - registration_deadline
+      - title
+    JobRequirementDetail:
+      type: object
+      description: Comprehensive representation with embedded verification checks
+        and audit history.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Cryptographically secure, non-enumerable primary key.
+        company:
+          type: string
+          format: uuid
+          description: Corporate entity offering the position. Preserved via PROTECT
+            deletion policy.
+        company_name:
+          type: string
+          readOnly: true
+        company_canonical_domain:
+          type: string
+          readOnly: true
+        company_industry:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          description: Job role / designation
+          maxLength: 255
+        description:
+          type: string
+          description: Detailed job description and responsibilities
+        role_category:
+          $ref: '#/components/schemas/RoleCategoryEnum'
+        required_skills:
+          description: List of mandatory technical and domain competencies
+        min_cgpa:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,2})?$
+          nullable: true
+          description: Minimum CGPA required (0.00 to 10.00)
+        min_percentage:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          nullable: true
+          description: Minimum aggregate percentage required (0.00 to 100.00%)
+        eligible_batches:
+          description: Eligible passing out years (e.g., ['2024', '2025'])
+        eligible_branches:
+          description: Eligible academic disciplines (e.g., ['CSE', 'ECE', 'ISE',
+            'MCA'])
+        max_backlogs_allowed:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Maximum permissible active backlogs
+        min_ctc_lpa:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+          description: Minimum annual CTC in Lakhs Per Annum (LPA)
+        max_ctc_lpa:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+          description: Maximum annual CTC in Lakhs Per Annum (LPA)
+        stipend_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+          description: Monthly stipend in INR if internship component exists
+        salary_details:
+          type: string
+          description: Breakdown of fixed, variable, perks, and probation compensation
+        job_location:
+          type: string
+          description: Primary job location or cities
+          maxLength: 255
+        work_arrangement:
+          $ref: '#/components/schemas/WorkArrangementEnum'
+        has_bond:
+          type: boolean
+          description: Whether candidates must sign an employment service agreement
+        bond_duration_months:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Duration of service bond in months
+        bond_details:
+          type: string
+          description: Terms, penalty clauses, or conditions of service bond
+        interview_rounds:
+          description: 'Ordered list of interview stages: [{''round_number'': 1, ''round_type'':
+            ''APTITUDE'', ...}]'
+        interview_process_notes:
+          type: string
+          description: Evaluation criteria, mode (online/offline), and round sequence
+        interview_date:
+          type: string
+          format: date
+          nullable: true
+          description: Scheduled date for primary campus drive or initial round
+        registration_deadline:
+          type: string
+          format: date-time
+          description: Strict cutoff timestamp for student applications
+        vacancies_count:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Estimated open positions
+        submitted_by:
+          type: string
+          format: uuid
+          description: Placement Officer who created and submitted this requirement
+          nullable: true
+        submitted_by_name:
+          type: string
+          readOnly: true
+        submitted_by_email:
+          type: string
+          readOnly: true
+        assigned_verifier:
+          type: string
+          format: uuid
+          description: Staff member assigned to execute the 5-point verification checklist
+          nullable: true
+        assigned_verifier_name:
+          type: string
+          readOnly: true
+        assigned_verifier_email:
+          type: string
+          readOnly: true
+        approved_by:
+          type: string
+          format: uuid
+          description: Placement Head / Admin who authorized and approved this job
+          nullable: true
+        approved_by_name:
+          type: string
+          readOnly: true
+        approved_at:
+          type: string
+          format: date-time
+          nullable: true
+        rejected_by:
+          type: string
+          format: uuid
+          description: Placement Head / Admin who rejected this job
+          nullable: true
+        rejected_by_name:
+          type: string
+          readOnly: true
+        rejected_at:
+          type: string
+          format: date-time
+          nullable: true
+        rejection_reason:
+          type: string
+          description: Documented justification for rejecting the requirement
+        changes_requested_reason:
+          type: string
+          description: Specific corrections requested by reviewer or approver
+        status:
+          $ref: '#/components/schemas/Status929Enum'
+        revision_number:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Monotonically increasing version counter incremented on authorized
+            amendments
+        verification_checks:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobVerificationCheck'
+          readOnly: true
+        workflow_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobWorkflowHistory'
+          readOnly: true
+        verification_summary:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        is_all_checks_verified:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: UTC timestamp when the record was initially created.
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: UTC timestamp when the record was last modified.
+      required:
+      - approved_by_name
+      - assigned_verifier_email
+      - assigned_verifier_name
+      - company
+      - company_canonical_domain
+      - company_industry
+      - company_name
+      - created_at
+      - description
+      - id
+      - is_all_checks_verified
+      - max_ctc_lpa
+      - min_ctc_lpa
+      - registration_deadline
+      - rejected_by_name
+      - submitted_by_email
+      - submitted_by_name
+      - title
+      - updated_at
+      - verification_checks
+      - verification_summary
+      - workflow_history
+    JobRequirementList:
+      type: object
+      description: Concise representation for tabular directory listings and search
+        results.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Cryptographically secure, non-enumerable primary key.
+        company:
+          type: string
+          format: uuid
+          description: Corporate entity offering the position. Preserved via PROTECT
+            deletion policy.
+        company_name:
+          type: string
+          readOnly: true
+        company_canonical_domain:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          description: Job role / designation
+          maxLength: 255
+        role_category:
+          $ref: '#/components/schemas/RoleCategoryEnum'
+        job_location:
+          type: string
+          description: Primary job location or cities
+          maxLength: 255
+        work_arrangement:
+          $ref: '#/components/schemas/WorkArrangementEnum'
+        min_ctc_lpa:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+          description: Minimum annual CTC in Lakhs Per Annum (LPA)
+        max_ctc_lpa:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+          description: Maximum annual CTC in Lakhs Per Annum (LPA)
+        vacancies_count:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Estimated open positions
+        registration_deadline:
+          type: string
+          format: date-time
+          description: Strict cutoff timestamp for student applications
+        interview_date:
+          type: string
+          format: date
+          nullable: true
+          description: Scheduled date for primary campus drive or initial round
+        status:
+          $ref: '#/components/schemas/Status929Enum'
+        revision_number:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Monotonically increasing version counter incremented on authorized
+            amendments
+        submitted_by:
+          type: string
+          format: uuid
+          description: Placement Officer who created and submitted this requirement
+          nullable: true
+        submitted_by_name:
+          type: string
+          readOnly: true
+        assigned_verifier:
+          type: string
+          format: uuid
+          description: Staff member assigned to execute the 5-point verification checklist
+          nullable: true
+        assigned_verifier_name:
+          type: string
+          readOnly: true
+        verification_summary:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: UTC timestamp when the record was initially created.
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: UTC timestamp when the record was last modified.
+      required:
+      - assigned_verifier_name
+      - company
+      - company_canonical_domain
+      - company_name
+      - created_at
+      - id
+      - max_ctc_lpa
+      - min_ctc_lpa
+      - registration_deadline
+      - submitted_by_name
+      - title
+      - updated_at
+      - verification_summary
+    JobVerificationCheck:
+      type: object
+      description: Detailed serializer for individual 5-point verification checks.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Cryptographically secure, non-enumerable primary key.
+        check_type:
+          allOf:
+          - $ref: '#/components/schemas/JobVerificationCheckCheckTypeEnum'
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/StatusEc4Enum'
+        verified_by:
+          type: string
+          format: uuid
+          description: Cryptographically random UUIDv4 primary key.
+          readOnly: true
+          nullable: true
+        verified_by_name:
+          type: string
+          readOnly: true
+        verified_by_email:
+          type: string
+          readOnly: true
+        verified_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        notes:
+          type: string
+          description: Detailed verifier observations, reasoning, and discrepancy
+            details
+        evidence_reference:
+          type: string
+          description: Evidence reference (e.g., CIN/GST number, past batch offer
+            letter link, salary survey link)
+          maxLength: 500
+        requires_reverification:
+          type: boolean
+          readOnly: true
+          description: Flagged True when a material field of the job is modified after
+            verification
+        invalidation_reason:
+          type: string
+          readOnly: true
+          description: Reason why this check was invalidated and requires re-verification
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: UTC timestamp when the record was initially created.
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: UTC timestamp when the record was last modified.
+      required:
+      - check_type
+      - created_at
+      - id
+      - invalidation_reason
+      - requires_reverification
+      - updated_at
+      - verified_at
+      - verified_by
+      - verified_by_email
+      - verified_by_name
+    JobVerificationCheckCheckTypeEnum:
+      enum:
+      - ELIGIBILITY
+      - SALARY_AUTHENTICITY
+      - COMPANY_AUTHENTICITY
+      - INTERVIEW_PROCESS
+      - REGISTRATION_DEADLINE
+      type: string
+      description: |-
+        * `ELIGIBILITY` - Check 1: Eligibility Compliance
+        * `SALARY_AUTHENTICITY` - Check 2: Salary Authenticity & CTC
+        * `COMPANY_AUTHENTICITY` - Check 3: Company & Contact Legitimacy
+        * `INTERVIEW_PROCESS` - Check 4: Interview Process & Stages
+        * `REGISTRATION_DEADLINE` - Check 5: Registration Deadline Validity
+    JobVerificationCheckUpdateRequest:
+      type: object
+      description: Payload serializer for recording a reviewer check evaluation.
+      properties:
+        status:
+          $ref: '#/components/schemas/StatusEc4Enum'
+        notes:
+          type: string
+          default: ''
+        evidence_reference:
+          type: string
+          default: ''
+      required:
+      - status
+    JobVerificationStatsResponse:
+      type: object
+      properties:
+        total_checks:
+          type: integer
+        verified_checks:
+          type: integer
+        pending_checks:
+          type: integer
+        flagged_checks:
+          type: integer
+        rejected_checks:
+          type: integer
+      required:
+      - flagged_checks
+      - pending_checks
+      - rejected_checks
+      - total_checks
+      - verified_checks
+    JobWorkflowActionRequest:
+      type: object
+      description: Payload serializer for approval, rejection, and change request
+        workflows.
+      properties:
+        reason:
+          type: string
+          default: ''
+        notes:
+          type: string
+          default: ''
+    JobWorkflowHistory:
+      type: object
+      description: Read-only audit record serializer for state transitions and review
+        decisions.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        from_status:
+          type: string
+          readOnly: true
+        to_status:
+          type: string
+          readOnly: true
+        actor:
+          type: string
+          format: uuid
+          description: Cryptographically random UUIDv4 primary key.
+          readOnly: true
+          nullable: true
+        actor_name:
+          type: string
+          readOnly: true
+        actor_email:
+          type: string
+          readOnly: true
+        action:
+          type: string
+          readOnly: true
+          description: e.g. SUBMIT, VERIFY_CHECK, REQUEST_CHANGES, APPROVE, REJECT,
+            AMEND
+        notes:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - action
+      - actor
+      - actor_email
+      - actor_name
+      - created_at
+      - from_status
+      - id
+      - notes
+      - to_status
+    JobWorkflowMetricsResponse:
+      type: object
+      properties:
+        total_jobs:
+          type: integer
+        draft_jobs:
+          type: integer
+        pending_verification_jobs:
+          type: integer
+        under_verification_jobs:
+          type: integer
+        changes_requested_jobs:
+          type: integer
+        pending_approval_jobs:
+          type: integer
+        approved_jobs:
+          type: integer
+        rejected_jobs:
+          type: integer
+        verification_stats:
+          $ref: '#/components/schemas/JobVerificationStatsResponse'
+      required:
+      - approved_jobs
+      - changes_requested_jobs
+      - draft_jobs
+      - pending_approval_jobs
+      - pending_verification_jobs
+      - rejected_jobs
+      - total_jobs
+      - under_verification_jobs
+      - verification_stats
+    LoginInputRequest:
+      type: object
+      description: Input serializer for email/password authentication.
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+    LogoutSuccessResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    OutcomeEnum:
+      enum:
+      - INTERESTED
+      - FOLLOW_UP_REQUESTED
+      - NOT_INTERESTED
+      - CALL_NOT_ANSWERED
+      - WRONG_NUMBER
+      - GATEKEEPER_BLOCKED
+      - MEETING_SCHEDULED
+      - REQUIREMENT_SHARED
+      type: string
+      description: |-
+        * `INTERESTED` - Interested in Hiring
+        * `FOLLOW_UP_REQUESTED` - Requested Callback / Follow-Up
+        * `NOT_INTERESTED` - Not Hiring / No Budget
+        * `CALL_NOT_ANSWERED` - Ringing / No Answer
+        * `WRONG_NUMBER` - Invalid / Wrong Number
+        * `GATEKEEPER_BLOCKED` - Gatekeeper Refused Transfer
+        * `MEETING_SCHEDULED` - Virtual / In-Person Meeting Scheduled
+        * `REQUIREMENT_SHARED` - Job Description Received
+    OutreachActivity:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Cryptographically secure, non-enumerable primary key.
+        company:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+        company_name:
+          type: string
+          readOnly: true
+        contact:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+          nullable: true
+        contact_name:
+          type: string
+          readOnly: true
+        executive:
+          type: string
+          format: uuid
+          description: Cryptographically random UUIDv4 primary key.
+          readOnly: true
+        executive_name:
+          type: string
+          readOnly: true
+        attempted_at:
+          type: string
+          format: date-time
+        channel:
+          $ref: '#/components/schemas/ChannelEnum'
+        outcome:
+          $ref: '#/components/schemas/OutcomeEnum'
+        notes:
+          type: string
+          description: Detailed notes summarizing the interaction.
+        next_action:
+          type: string
+          maxLength: 255
+        follow_up_date:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: UTC timestamp when the record was initially created.
+      required:
+      - company
+      - company_name
+      - contact_name
+      - created_at
+      - executive
+      - executive_name
+      - id
+      - notes
+    OutreachActivityCreateRequest:
+      type: object
+      properties:
+        contact_id:
+          type: string
+          format: uuid
+          nullable: true
+        channel:
+          $ref: '#/components/schemas/ChannelEnum'
+        outcome:
+          $ref: '#/components/schemas/OutcomeEnum'
+        notes:
+          type: string
+          minLength: 1
+        next_action:
+          type: string
+          default: ''
+          maxLength: 255
+        follow_up_date:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - channel
+      - notes
+      - outcome
+    PaginatedCompanyListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompanyList'
+    PaginatedCreativeAssetVersionDetailList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreativeAssetVersionDetail'
+    PaginatedCreativeRequestListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreativeRequestList'
+    PaginatedFollowUpList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/FollowUp'
+    PaginatedJobRequirementListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobRequirementList'
+    PaginatedJobVerificationCheckList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobVerificationCheck'
+    PaginatedJobWorkflowHistoryList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobWorkflowHistory'
+    PatchedCompanyUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        website:
+          type: string
+          format: uri
+          maxLength: 500
+        industry:
+          $ref: '#/components/schemas/IndustryEnum'
+        source:
+          $ref: '#/components/schemas/SourceEnum'
+        status:
+          $ref: '#/components/schemas/StatusF03Enum'
+        tier:
+          $ref: '#/components/schemas/TierEnum'
+        assigned_to:
+          type: string
+          format: uuid
+          description: Acquisition / Calling executive responsible for this account.
+          nullable: true
+        notes:
+          type: string
+    PatchedHRContactCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        designation:
+          type: string
+          maxLength: 128
+        department:
+          type: string
+          maxLength: 128
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        phone:
+          type: string
+          maxLength: 32
+        alternate_phone:
+          type: string
+          maxLength: 32
+        linkedin_url:
+          type: string
+          format: uri
+          maxLength: 500
+        preferred_channel:
+          $ref: '#/components/schemas/PreferredChannelEnum'
+        status:
+          $ref: '#/components/schemas/StatusC48Enum'
+        is_primary:
+          type: boolean
+          description: Designates this recruiter as the primary placement point of
+            contact.
+        notes:
+          type: string
+        assigned_to:
+          type: string
+          format: uuid
+          description: Cryptographically random UUIDv4 primary key.
+          nullable: true
+    PatchedJobRequirementCreateUpdateRequest:
+      type: object
+      description: Payload serializer for job requirement creation and draft modification.
+      properties:
+        company:
+          type: string
+          format: uuid
+          description: Cryptographically secure, non-enumerable primary key.
+        title:
+          type: string
+          minLength: 1
+          description: Job role / designation
+          maxLength: 255
+        description:
+          type: string
+          minLength: 1
+          description: Detailed job description and responsibilities
+        role_category:
+          $ref: '#/components/schemas/RoleCategoryEnum'
+        required_skills:
+          description: List of mandatory technical and domain competencies
+        min_cgpa:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,2})?$
+          nullable: true
+          description: Minimum CGPA required (0.00 to 10.00)
+        min_percentage:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          nullable: true
+          description: Minimum aggregate percentage required (0.00 to 100.00%)
+        eligible_batches:
+          description: Eligible passing out years (e.g., ['2024', '2025'])
+        eligible_branches:
+          description: Eligible academic disciplines (e.g., ['CSE', 'ECE', 'ISE',
+            'MCA'])
+        max_backlogs_allowed:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Maximum permissible active backlogs
+        min_ctc_lpa:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+          description: Minimum annual CTC in Lakhs Per Annum (LPA)
+        max_ctc_lpa:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+          description: Maximum annual CTC in Lakhs Per Annum (LPA)
+        stipend_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+          description: Monthly stipend in INR if internship component exists
+        salary_details:
+          type: string
+          description: Breakdown of fixed, variable, perks, and probation compensation
+        job_location:
+          type: string
+          description: Primary job location or cities
+          maxLength: 255
+        work_arrangement:
+          $ref: '#/components/schemas/WorkArrangementEnum'
+        has_bond:
+          type: boolean
+          description: Whether candidates must sign an employment service agreement
+        bond_duration_months:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Duration of service bond in months
+        bond_details:
+          type: string
+          description: Terms, penalty clauses, or conditions of service bond
+        interview_rounds:
+          description: 'Ordered list of interview stages: [{''round_number'': 1, ''round_type'':
+            ''APTITUDE'', ...}]'
+        interview_process_notes:
+          type: string
+          description: Evaluation criteria, mode (online/offline), and round sequence
+        interview_date:
+          type: string
+          format: date
+          nullable: true
+          description: Scheduled date for primary campus drive or initial round
+        registration_deadline:
+          type: string
+          format: date-time
+          description: Strict cutoff timestamp for student applications
+        vacancies_count:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Estimated open positions
+    PatchedUpdateCreativeRequestRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        brief:
+          type: string
+          minLength: 1
+        creative_type:
+          $ref: '#/components/schemas/CreativeTypeEnum'
+        aspect_ratio:
+          $ref: '#/components/schemas/AspectRatioEnum'
+        deliverable_format:
+          $ref: '#/components/schemas/DeliverableFormatEnum'
+        priority:
+          $ref: '#/components/schemas/Priority6b8Enum'
+        target_completion_date:
+          type: string
+          format: date
+          nullable: true
+    PatchedUserStatusUpdateInputRequest:
+      type: object
+      properties:
+        is_active:
+          type: boolean
+    PreferredChannelEnum:
+      enum:
+      - EMAIL
+      - PHONE
+      - WHATSAPP
+      - LINKEDIN
+      type: string
+      description: |-
+        * `EMAIL` - Corporate Email
+        * `PHONE` - Direct Phone Call
+        * `WHATSAPP` - WhatsApp Messaging
+        * `LINKEDIN` - LinkedIn InMail
+    Priority6b8Enum:
+      enum:
+      - LOW
+      - MEDIUM
+      - HIGH
+      - URGENT
+      type: string
+      description: |-
+        * `LOW` - Low Priority
+        * `MEDIUM` - Medium Priority
+        * `HIGH` - High Priority
+        * `URGENT` - Urgent / Fast-Track
+    Priority80cEnum:
+      enum:
+      - LOW
+      - MEDIUM
+      - HIGH
+      - URGENT
+      type: string
+      description: |-
+        * `LOW` - Low
+        * `MEDIUM` - Medium
+        * `HIGH` - High
+        * `URGENT` - Urgent / Escalated
+    ReadinessErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        database:
+          type: string
+        detail:
+          type: string
+      required:
+      - database
+      - detail
+      - status
+    ReadinessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        database:
+          type: string
+      required:
+      - database
+      - status
+    RequestChangesRequest:
+      type: object
+      properties:
+        review_feedback:
+          type: string
+          minLength: 1
+      required:
+      - review_feedback
+    RoleAssignmentInputRequest:
+      type: object
+      description: Input serializer for role assignment/revocation.
+      properties:
+        role_code:
+          $ref: '#/components/schemas/RoleCodeEnum'
+      required:
+      - role_code
+    RoleCategoryEnum:
+      enum:
+      - SOFTWARE_ENGINEERING
+      - DATA_ANALYTICS
+      - CLOUD_DEVOPS
+      - QA_TESTING
+      - PRODUCT_SUPPORT
+      - CYBERSECURITY
+      - BUSINESS_ANALYST
+      - OTHER
+      type: string
+      description: |-
+        * `SOFTWARE_ENGINEERING` - Software Engineering / Developer
+        * `DATA_ANALYTICS` - Data Analytics / Data Science
+        * `CLOUD_DEVOPS` - Cloud Computing & DevOps
+        * `QA_TESTING` - Quality Assurance & Testing
+        * `PRODUCT_SUPPORT` - Technical Support / IT Operations
+        * `CYBERSECURITY` - Information Security & Cybersecurity
+        * `BUSINESS_ANALYST` - Business Analysis & Product Consulting
+        * `OTHER` - Other Domain / Multidisciplinary
+    RoleCodeEnum:
+      enum:
+      - ADMIN
+      - PLACEMENT_HEAD
+      - PLACEMENT_OFFICER
+      - CALLING_EXECUTIVE
+      - CRM_EXECUTIVE
+      - CREATIVE_DESIGNER
+      - CREATIVE_REVIEWER
+      - TRAINER
+      - INTERVIEW_COORDINATOR
+      - AUDITOR
+      type: string
+      description: |-
+        * `ADMIN` - System Administrator
+        * `PLACEMENT_HEAD` - Placement Head / Approver
+        * `PLACEMENT_OFFICER` - Placement Officer
+        * `CALLING_EXECUTIVE` - Company Acquisition / Calling Executive
+        * `CRM_EXECUTIVE` - Recruitment CRM Executive
+        * `CREATIVE_DESIGNER` - Design Team / Creative Designer
+        * `CREATIVE_REVIEWER` - Creative Reviewer / Approver
+        * `TRAINER` - Student Preparation / Trainer
+        * `INTERVIEW_COORDINATOR` - Interview Coordinator
+        * `AUDITOR` - Reporting / Compliance Auditor
+    RolesEnum:
+      enum:
+      - ADMIN
+      - PLACEMENT_HEAD
+      - PLACEMENT_OFFICER
+      - CALLING_EXECUTIVE
+      - CRM_EXECUTIVE
+      - CREATIVE_DESIGNER
+      - CREATIVE_REVIEWER
+      - TRAINER
+      - INTERVIEW_COORDINATOR
+      - AUDITOR
+      type: string
+      description: |-
+        * `ADMIN` - System Administrator
+        * `PLACEMENT_HEAD` - Placement Head / Approver
+        * `PLACEMENT_OFFICER` - Placement Officer
+        * `CALLING_EXECUTIVE` - Company Acquisition / Calling Executive
+        * `CRM_EXECUTIVE` - Recruitment CRM Executive
+        * `CREATIVE_DESIGNER` - Design Team / Creative Designer
+        * `CREATIVE_REVIEWER` - Creative Reviewer / Approver
+        * `TRAINER` - Student Preparation / Trainer
+        * `INTERVIEW_COORDINATOR` - Interview Coordinator
+        * `AUDITOR` - Reporting / Compliance Auditor
+    SourceEnum:
+      enum:
+      - OUTBOUND_CALLING
+      - INBOUND_INQUIRY
+      - JOB_PORTAL
+      - CAMPUS_ALUMNI
+      - LINKEDIN
+      - EXECUTIVE_REFERRAL
+      - OTHER
+      type: string
+      description: |-
+        * `OUTBOUND_CALLING` - Outbound Cold Calling
+        * `INBOUND_INQUIRY` - Inbound Inquiry
+        * `JOB_PORTAL` - Job Portal Scraping / Lead
+        * `CAMPUS_ALUMNI` - Alumni Referral / Network
+        * `LINKEDIN` - LinkedIn Outreach
+        * `EXECUTIVE_REFERRAL` - Executive / Leadership Referral
+        * `OTHER` - Other Source
+    Status6abEnum:
+      enum:
+      - PENDING
+      - PASSED
+      - FLAGGED
+      type: string
+      description: |-
+        * `PENDING` - Pending Review
+        * `PASSED` - Passed Compliance
+        * `FLAGGED` - Flagged for Revision
+    Status929Enum:
+      enum:
+      - DRAFT
+      - PENDING_VERIFICATION
+      - UNDER_VERIFICATION
+      - CHANGES_REQUESTED
+      - PENDING_APPROVAL
+      - APPROVED
+      - REJECTED
+      type: string
+      description: |-
+        * `DRAFT` - Draft
+        * `PENDING_VERIFICATION` - Pending Verification
+        * `UNDER_VERIFICATION` - Under Verification Review
+        * `CHANGES_REQUESTED` - Changes Requested
+        * `PENDING_APPROVAL` - Pending Placement Head Approval
+        * `APPROVED` - Approved & Verified
+        * `REJECTED` - Rejected
+    StatusC48Enum:
+      enum:
+      - ACTIVE
+      - INACTIVE
+      - FORMER_EMPLOYEE
+      type: string
+      description: |-
+        * `ACTIVE` - Active Recruiter
+        * `INACTIVE` - Inactive
+        * `FORMER_EMPLOYEE` - Left Organization
+    StatusEc4Enum:
+      enum:
+      - PENDING
+      - VERIFIED
+      - FLAGGED
+      - REJECTED
+      type: string
+      description: |-
+        * `PENDING` - Pending Review
+        * `VERIFIED` - Verified & Passed
+        * `FLAGGED` - Flagged for Attention
+        * `REJECTED` - Rejected / Non-Compliant
+    StatusF03Enum:
+      enum:
+      - LEAD
+      - CONTACTED
+      - ENGAGED
+      - ACTIVE_HIRING_PARTNER
+      - DORMANT
+      - BLACKLISTED
+      type: string
+      description: |-
+        * `LEAD` - Lead / Prospect
+        * `CONTACTED` - Contacted / Outreach Initiated
+        * `ENGAGED` - Engaged / In Discussion
+        * `ACTIVE_HIRING_PARTNER` - Active Hiring Partner
+        * `DORMANT` - Dormant / No Immediate Requirement
+        * `BLACKLISTED` - Blacklisted / Do Not Contact
+    StatusFd0Enum:
+      enum:
+      - DRAFT
+      - SUBMITTED
+      - ASSIGNED
+      - IN_DESIGN
+      - IN_REVIEW
+      - CHANGES_REQUESTED
+      - APPROVED
+      - READY_FOR_HANDOFF
+      - CANCELLED
+      type: string
+      description: |-
+        * `DRAFT` - Draft
+        * `SUBMITTED` - Submitted for Triage
+        * `ASSIGNED` - Assigned to Designer
+        * `IN_DESIGN` - In Design
+        * `IN_REVIEW` - In Review
+        * `CHANGES_REQUESTED` - Changes Requested
+        * `APPROVED` - Approved
+        * `READY_FOR_HANDOFF` - Ready for Handoff
+        * `CANCELLED` - Cancelled
+    TierEnum:
+      enum:
+      - TIER_1
+      - TIER_2
+      - TIER_3
+      - UNRATED
+      type: string
+      description: |-
+        * `TIER_1` - Tier 1 (Enterprise / MNC)
+        * `TIER_2` - Tier 2 (Mid-Market / High Growth)
+        * `TIER_3` - Tier 3 (Startup / Boutique)
+        * `UNRATED` - Unrated
+    TokenRefreshErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    TokenRefreshSuccessResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    UpdateCreativeRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        brief:
+          type: string
+        creative_type:
+          $ref: '#/components/schemas/CreativeTypeEnum'
+        aspect_ratio:
+          $ref: '#/components/schemas/AspectRatioEnum'
+        deliverable_format:
+          $ref: '#/components/schemas/DeliverableFormatEnum'
+        priority:
+          $ref: '#/components/schemas/Priority6b8Enum'
+        target_completion_date:
+          type: string
+          format: date
+          nullable: true
+    UpdateCreativeRequestRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        brief:
+          type: string
+          minLength: 1
+        creative_type:
+          $ref: '#/components/schemas/CreativeTypeEnum'
+        aspect_ratio:
+          $ref: '#/components/schemas/AspectRatioEnum'
+        deliverable_format:
+          $ref: '#/components/schemas/DeliverableFormatEnum'
+        priority:
+          $ref: '#/components/schemas/Priority6b8Enum'
+        target_completion_date:
+          type: string
+          format: date
+          nullable: true
+    UserNotFoundResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    UserNotFoundResponsePatch:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    UserNotFoundRoleAssign:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    UserNotFoundRoleRevoke:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    UserProfile:
+      type: object
+      description: Serializer for user profile representation.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Cryptographically random UUIDv4 primary key.
+        email:
+          type: string
+          format: email
+          description: Normalized email address used as the primary login identifier.
+          maxLength: 255
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        full_name:
+          type: string
+          readOnly: true
+        phone_number:
+          type: string
+          maxLength: 20
+        is_active:
+          type: boolean
+          description: Designates whether this user account is active and permitted
+            to login.
+        is_staff:
+          type: boolean
+          description: Designates whether the user can log into the Django admin site.
+        is_superuser:
+          type: boolean
+          readOnly: true
+          title: Superuser status
+          description: Designates that this user has all permissions without explicitly
+            assigning them.
+        roles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - email
+      - full_name
+      - id
+      - is_superuser
+      - roles
+    UserProvisionRequest:
+      type: object
+      description: Input serializer for administrative staff creation.
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 10
+        first_name:
+          type: string
+          default: ''
+        last_name:
+          type: string
+          default: ''
+        phone_number:
+          type: string
+          default: ''
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/RolesEnum'
+        is_staff:
+          type: boolean
+          default: false
+      required:
+      - email
+      - password
+    WorkArrangementEnum:
+      enum:
+      - ONSITE
+      - HYBRID
+      - REMOTE
+      type: string
+      description: |-
+        * `ONSITE` - On-site / In-Office
+        * `HYBRID` - Hybrid Model
+        * `REMOTE` - Full Remote / Work from Home
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    jwtCookieAuth:
+      type: apiKey
+      in: cookie
+      name: gqt_access_token
+      description: HttpOnly JWT access token cookie set upon successful login.
