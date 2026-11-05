@@ -138,3 +138,28 @@ def test_step23_hard_gate_succeeds_when_all_prerequisites_are_satisfied(candidat
     )
     assert cert.is_certified is True
     assert cert.certified_by == admin_user
+
+
+@pytest.mark.django_db
+def test_evaluate_readiness_criteria_annotation_and_return_structure(candidate, sample_job):
+    """Regression test: evaluate_readiness_criteria return structure & Tuple_Readiness type resolution."""
+    import importlib
+    import typing
+    import apps.preparation.services as prep_services
+
+    # Verify module re-imports cleanly without NameError or startup failure
+    importlib.reload(prep_services)
+
+    # Verify type annotations resolve cleanly without error
+    type_hints = typing.get_type_hints(prep_services.evaluate_readiness_criteria)
+    assert "return" in type_hints
+    assert type_hints["return"] == tuple[bool, list[str]]
+
+    # Verify return value is a 2-tuple conforming to (bool, list[str])
+    res = prep_services.evaluate_readiness_criteria(candidate, sample_job)
+    assert isinstance(res, tuple)
+    assert len(res) == 2
+    can_certify, missing = res
+    assert isinstance(can_certify, bool)
+    assert isinstance(missing, list)
+    assert all(isinstance(item, str) for item in missing)

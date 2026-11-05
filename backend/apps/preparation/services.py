@@ -14,6 +14,8 @@ from apps.preparation.models import (
     ResumeReviewStatusChoices,
 )
 
+Tuple_Readiness = tuple[bool, list[str]]
+
 
 def evaluate_readiness_criteria(
     student: StudentProfile,
@@ -51,9 +53,6 @@ def evaluate_readiness_criteria(
 
     can_certify = len(missing) == 0
     return can_certify, missing
-
-
-Tuple_Readiness = tuple[bool, list[str]]
 
 
 def certify_student_readiness(
