@@ -24,6 +24,11 @@ const CreativeRequestFormPage = React.lazy(() => import("./pages/creatives/Creat
 const CreativeDetailPage = React.lazy(() => import("./pages/creatives/CreativeDetailPage").then(m => ({ default: m.CreativeDetailPage })));
 const CreativeReviewQueuePage = React.lazy(() => import("./pages/creatives/CreativeReviewQueuePage").then(m => ({ default: m.CreativeReviewQueuePage })));
 const DesignerWorkspacePage = React.lazy(() => import("./pages/creatives/DesignerWorkspacePage").then(m => ({ default: m.DesignerWorkspacePage })));
+const AuditLogViewerPage = React.lazy(() => import("./pages/audit/AuditLogViewerPage").then(m => ({ default: m.AuditLogViewerPage })));
+const StudentDirectoryPage = React.lazy(() => import("./pages/students/StudentDirectoryPage").then(m => ({ default: m.StudentDirectoryPage })));
+const StudentDetailPage = React.lazy(() => import("./pages/students/StudentDetailPage").then(m => ({ default: m.StudentDetailPage })));
+const PlacementDrivesPage = React.lazy(() => import("./pages/interviews/PlacementDrivesPage").then(m => ({ default: m.PlacementDrivesPage })));
+const DriveDetailPage = React.lazy(() => import("./pages/interviews/DriveDetailPage").then(m => ({ default: m.DriveDetailPage })));
 
 const PageLoader: React.FC = () => (
   <div className="flex h-64 items-center justify-center">
@@ -207,22 +212,32 @@ export const App: React.FC = () => {
               <Route
                 path="students"
                 element={
-                  <ProtectedRoute requiredRoles={["ADMIN", "PLACEMENT_HEAD", "PLACEMENT_OFFICER", "TRAINER"]}>
-                    <div className="p-4 bg-white rounded-lg border border-slate-200">
-                      <h2 className="text-lg font-bold text-brand-dark">Student Placement Operations & Readiness</h2>
-                      <p className="text-xs text-brand-muted mt-1">Scheduled for Phase 6 implementation.</p>
-                    </div>
+                  <ProtectedRoute requiredRoles={["ADMIN", "PLACEMENT_HEAD", "PLACEMENT_OFFICER", "TRAINER", "AUDITOR"]}>
+                    <StudentDirectoryPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="students/:id"
+                element={
+                  <ProtectedRoute requiredRoles={["ADMIN", "PLACEMENT_HEAD", "PLACEMENT_OFFICER", "TRAINER", "AUDITOR"]}>
+                    <StudentDetailPage />
                   </ProtectedRoute>
                 }
               />
               <Route
                 path="interviews"
                 element={
-                  <ProtectedRoute requiredRoles={["ADMIN", "PLACEMENT_HEAD", "PLACEMENT_OFFICER", "INTERVIEW_COORDINATOR"]}>
-                    <div className="p-4 bg-white rounded-lg border border-slate-200">
-                      <h2 className="text-lg font-bold text-brand-dark">Interview Rounds & Drives</h2>
-                      <p className="text-xs text-brand-muted mt-1">Scheduled for Phase 7 implementation.</p>
-                    </div>
+                  <ProtectedRoute requiredRoles={["ADMIN", "PLACEMENT_HEAD", "PLACEMENT_OFFICER", "INTERVIEW_COORDINATOR", "AUDITOR"]}>
+                    <PlacementDrivesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="interviews/:id"
+                element={
+                  <ProtectedRoute requiredRoles={["ADMIN", "PLACEMENT_HEAD", "PLACEMENT_OFFICER", "INTERVIEW_COORDINATOR", "AUDITOR"]}>
+                    <DriveDetailPage />
                   </ProtectedRoute>
                 }
               />
@@ -230,10 +245,7 @@ export const App: React.FC = () => {
                 path="audit"
                 element={
                   <ProtectedRoute requiredRoles={["ADMIN", "AUDITOR"]}>
-                    <div className="p-4 bg-white rounded-lg border border-slate-200">
-                      <h2 className="text-lg font-bold text-brand-dark">Audit Logs & Compliance Oversight</h2>
-                      <p className="text-xs text-brand-muted mt-1">Audit log viewer scheduled for Phase 8.</p>
-                    </div>
+                    <AuditLogViewerPage />
                   </ProtectedRoute>
                 }
               />

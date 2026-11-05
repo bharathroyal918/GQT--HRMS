@@ -1,7 +1,7 @@
 /**
  * API client methods for Phase 4 Creative Studio & Design Asset Approval.
  */
-import { apiClient } from "./apiClient";
+import { apiClient, API_BASE_URL } from "./apiClient";
 import {
   PaginatedCreativeResponse,
   CreativeRequestDetail,
@@ -164,7 +164,7 @@ export const creativesApi = {
 
   getAssetDownloadUrl: (versionId: string, download: boolean = false): string => {
     const param = download ? "?download=true" : "";
-    return `/api/v1/creatives/versions/${versionId}/download/${param}`;
+    return `${API_BASE_URL}/creatives/versions/${versionId}/download/${param}`;
   },
 };
 

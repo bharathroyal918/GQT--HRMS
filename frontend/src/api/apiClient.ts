@@ -1,8 +1,14 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { generateCorrelationId } from "../lib/utils";
 
+export const API_ROOT = import.meta.env.VITE_API_URL
+  ? String(import.meta.env.VITE_API_URL).replace(/\/+$/, "")
+  : "";
+
+export const API_BASE_URL = `${API_ROOT}/api/v1`;
+
 export const apiClient = axios.create({
-  baseURL: "/api/v1",
+  baseURL: API_BASE_URL,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",

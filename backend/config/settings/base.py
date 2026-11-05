@@ -85,6 +85,11 @@ LOCAL_APPS = [
     "apps.crm.apps.CrmConfig",
     "apps.jobs.apps.JobsConfig",
     "apps.creatives.apps.CreativesConfig",
+    "apps.students.apps.StudentsConfig",
+    "apps.preparation.apps.PreparationConfig",
+    "apps.submissions.apps.SubmissionsConfig",
+    "apps.interviews.apps.InterviewsConfig",
+    "apps.placements.apps.PlacementsConfig",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -95,6 +100,7 @@ AUTH_USER_MODEL = "accounts.User"
 MIDDLEWARE = [
     "apps.core.middleware.CorrelationIdMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -134,6 +140,7 @@ if DATABASE_URL and not USE_SQLITE:
     DATABASES = {
         "default": env.db_url("DATABASE_URL", engine="django.db.backends.postgresql")
     }
+    DATABASES["default"].setdefault("OPTIONS", {})["sslmode"] = env.str("DB_SSLMODE", default="require")
 elif DB_HOST and not USE_SQLITE:
     DATABASES = {
         "default": {
@@ -143,6 +150,9 @@ elif DB_HOST and not USE_SQLITE:
             "PASSWORD": env.str("DB_PASSWORD", default=""),
             "HOST": DB_HOST,
             "PORT": env.str("DB_PORT", default="5432"),
+            "OPTIONS": {
+                "sslmode": env.str("DB_SSLMODE", default="require"),
+            },
         }
     }
 else:
@@ -199,6 +209,15 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # Media files (Resumes, Creatives, Offer Letters)
 configured_media_root = env.str("MEDIA_ROOT", default="")
@@ -263,7 +282,7 @@ AUTH_COOKIE_ACCESS = "gqt_access_token"
 AUTH_COOKIE_REFRESH = "gqt_refresh_token"
 AUTH_COOKIE_SECURE = env.bool("JWT_COOKIE_SECURE", default=False)
 AUTH_COOKIE_HTTP_ONLY = True
-AUTH_COOKIE_SAMESITE = "Lax"
+AUTH_COOKIE_SAMESITE = env.str("AUTH_COOKIE_SAMESITE", default="Lax")
 
 # CORS & CSRF
 CORS_ALLOWED_ORIGINS = env.list(
@@ -277,7 +296,9 @@ CSRF_TRUSTED_ORIGINS = env.list(
 )
 
 SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=False)
+SESSION_COOKIE_SAMESITE = env.str("SESSION_COOKIE_SAMESITE", default="Lax")
 CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=False)
+CSRF_COOKIE_SAMESITE = env.str("CSRF_COOKIE_SAMESITE", default="Lax")
 CSRF_COOKIE_HTTPONLY = False
 
 # drf-spectacular OpenAPI 3.1
@@ -336,8 +357,3 @@ STUDENT_PORTAL_WEB_URL = env.str(
 )
 STUDENT_PORTAL_ENABLED = env.bool("STUDENT_PORTAL_ENABLED", default=False)
 
-# Supabase Platform Settings
-SUPABASE_URL = env.str("SUPABASE_URL", default="https://fgicxxieldztppdlpomi.supabase.co")
-SUPABASE_PUBLISHABLE_KEY = env.str("SUPABASE_PUBLISHABLE_KEY", default="sb_publishable_-6nzWCGKkfp9IsMOPCcIpA_grxAFg6E")
-SUPABASE_SECRET_KEY = os.environ.get("SUPABASE_SECRET_KEY", "")
-SUPABASE_JWKS_URL = env.str("SUPABASE_JWKS_URL", default="https://fgicxxieldztppdlpomi.supabase.co/auth/v1/.well-known/jwks.json")

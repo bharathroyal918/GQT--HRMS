@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: gqt-hrms-backend
+    runtime: python
+    region: frankfurt
+    plan: free
+    buildCommand: bash build.sh
+    startCommand: gunicorn --chdir backend config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.production
+      - key: ENVIRONMENT
+        value: production
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_ALLOWED_HOSTS
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: DB_HOST
+        value: aws-1-eu-central-1.pooler.supabase.com
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_NAME
+        value: postgres
+      - key: DB_USER
+        value: postgres.fgicxxieldztppdlpomi
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_SSLMODE
+        value: require
+      - key: USE_SQLITE_FOR_LOCAL_DEV
+        value: "False"
+      - key: AUTH_COOKIE_SAMESITE
+        value: "None"
+      - key: SESSION_COOKIE_SAMESITE
+        value: "None"
+      - key: CSRF_COOKIE_SAMESITE
+        value: "None"
+      - key: SECURE_SSL_REDIRECT
+        value: "True"
+

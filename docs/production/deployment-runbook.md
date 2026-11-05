@@ -93,42 +93,110 @@ sudo ufw enable
 
 ## 3. Database Setup & Hardening
 
-### 3.1 PostgreSQL Role & Database Creation
+### 3.1 Three-Tier PostgreSQL Role Architecture
+To enforce strict defense-in-depth and guarantee audit log immutability against application vulnerabilities or SQL injection, database access is divided into three distinct roles:
+
+| Role Name | Scope & Purpose | Privileges | Used By |
+|---|---|---|---|
+| **`postgres`** | Cluster Administrator / DBA | Superuser / Cluster Admin | Initial setup, role provisioning |
+| **`gqt_hrms_migration_user`** | Schema Owner / DDL Migrations | Schema owner, DDL on `public` (`CREATE`, `ALTER`, `DROP`) | Release deployments (`manage.py migrate`) |
+| **`gqt_hrms_app_user`** | Web Application Runtime | Non-owner, DML only (`SELECT`, `INSERT`, `UPDATE`, `DELETE`) | Gunicorn / Django web workers (`DATABASE_URL`) |
+
+### 3.2 PostgreSQL Role & Database Provisioning
+Connect as PostgreSQL administrator:
 ```bash
 sudo -u postgres psql
 ```
 ```sql
--- Create dedicated application database user with strong random password
-CREATE USER gqt_hrms_app_user WITH PASSWORD '<REPLACE_WITH_STRONG_GENERATED_PASSWORD>';
+-- 1. Create schema migration user (schema owner) with strong password
+CREATE USER gqt_hrms_migration_user WITH PASSWORD '<REPLACE_WITH_STRONG_MIGRATION_PASSWORD>';
 
--- Create database owned by application user
-CREATE DATABASE gqt_hrms OWNER gqt_hrms_app_user;
+-- 2. Create runtime application user (unprivileged non-owner) with strong password
+CREATE USER gqt_hrms_app_user WITH PASSWORD '<REPLACE_WITH_STRONG_APP_PASSWORD>';
 
--- Connect to database
+-- 3. Create database owned by migration user
+CREATE DATABASE gqt_hrms OWNER gqt_hrms_migration_user;
+
+-- 4. Connect to gqt_hrms database
 \c gqt_hrms
 
--- Standard schema permissions
-GRANT ALL ON SCHEMA public TO gqt_hrms_app_user;
+-- 5. Configure schema ownership and base privileges
+ALTER SCHEMA public OWNER TO gqt_hrms_migration_user;
+GRANT CONNECT ON DATABASE gqt_hrms TO gqt_hrms_app_user;
+GRANT USAGE ON SCHEMA public TO gqt_hrms_app_user;
+
+-- 6. Configure default privileges for future tables created by migration user
+ALTER DEFAULT PRIVILEGES FOR ROLE gqt_hrms_migration_user IN SCHEMA public
+    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO gqt_hrms_app_user;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE gqt_hrms_migration_user IN SCHEMA public
+    GRANT USAGE, SELECT ON SEQUENCES TO gqt_hrms_app_user;
 ```
 
-### 3.2 Audit Log Table Immutability Hardening
-> **CRITICAL SECURITY REQUIREMENT (SEC-4E-002):**  
-> To guarantee that audit log entries cannot be modified or deleted—even if an application vulnerability or SQL injection is exploited—the application database role `gqt_hrms_app_user` must be explicitly restricted from `UPDATE`, `DELETE`, and `TRUNCATE` operations on `core_audit_log`.
+### 3.3 Initial Migration Execution as Schema Owner
+Run initial migrations using the `gqt_hrms_migration_user` role so all tables are created with proper ownership:
+```bash
+sudo -u gqt_app -i
+cd /srv/gqt-hrms
+DATABASE_URL=postgres://gqt_hrms_migration_user:<STRONG_MIGRATION_PASSWORD>@127.0.0.1:5432/gqt_hrms \
+    /srv/gqt-hrms/backend/.venv/bin/python /srv/gqt-hrms/backend/manage.py migrate --settings=config.settings.production
+```
 
-**Execute the following SQL after initial migrations are applied:**
+### 3.4 Audit Log Immutability Enforcement
+> **CRITICAL SECURITY REQUIREMENT (SEC-4E-002):**  
+> Because `core_audit_log` is owned by `gqt_hrms_migration_user` (and NOT by `gqt_hrms_app_user`), revoking `UPDATE`, `DELETE`, and `TRUNCATE` privileges from `gqt_hrms_app_user` completely prevents the application from tampering with audit records. The application user cannot re-grant privileges to itself or alter table definitions.
+
+**Execute the following SQL as administrator or schema owner after migrations:**
 ```sql
 \c gqt_hrms
 
--- Revoke mutation permissions on the audit log table
+-- Grant base table DML to app user across standard domain tables
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO gqt_hrms_app_user;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO gqt_hrms_app_user;
+
+-- Explicitly revoke mutation rights on the immutable audit log table
 REVOKE UPDATE, DELETE, TRUNCATE ON TABLE core_audit_log FROM gqt_hrms_app_user;
 
--- Grant append-only (INSERT) and read (SELECT) permissions
+-- Ensure app user possesses strictly append-only (INSERT) and read (SELECT) privileges
 GRANT SELECT, INSERT ON TABLE core_audit_log TO gqt_hrms_app_user;
-
--- Verification: Ensure app user cannot mutate records
--- (Run as gqt_hrms_app_user to test):
--- DELETE FROM core_audit_log WHERE 1=1; -> ERROR: permission denied for table core_audit_log
 ```
+
+### 3.5 Staging Verification Protocol
+Verify the privilege design in staging prior to production cutover:
+```sql
+-- Connect as runtime application user
+\c gqt_hrms gqt_hrms_app_user
+
+-- 1. Test AuditLog creation (MUST SUCCEED)
+-- AuditLog records use client-generated UUID primary keys and insert directly
+INSERT INTO core_audit_log (id, action, resource_type, resource_id, created_at, changes, user_agent, correlation_id)
+VALUES (gen_random_uuid(), 'SECURITY_VERIFY', 'system.test', 'probe-1', NOW(), '{}', 'psql-probe', 'corr-probe');
+
+-- 2. Test AuditLog read (MUST SUCCEED)
+SELECT count(*) FROM core_audit_log WHERE action = 'SECURITY_VERIFY';
+
+-- 3. Test AuditLog update (MUST FAIL with permission denied)
+UPDATE core_audit_log SET action = 'TAMPERED' WHERE resource_id = 'probe-1';
+-- Expected result: ERROR: permission denied for table core_audit_log
+
+-- 4. Test AuditLog deletion (MUST FAIL with permission denied)
+DELETE FROM core_audit_log WHERE resource_id = 'probe-1';
+-- Expected result: ERROR: permission denied for table core_audit_log
+
+-- 5. Test AuditLog truncation (MUST FAIL with permission denied)
+TRUNCATE TABLE core_audit_log;
+-- Expected result: ERROR: permission denied for table core_audit_log
+
+-- 6. Test self-grant elevation (MUST FAIL because app user is not table owner)
+GRANT ALL ON TABLE core_audit_log TO gqt_hrms_app_user;
+-- Expected result: WARNING: no privileges were granted for "core_audit_log" (or ERROR: must be owner)
+```
+
+### 3.6 Future Schema Migrations Workflow
+When future release phases (e.g. Phase 8 Audit Log Viewer) introduce migrations altering `core_audit_log`:
+1. Migrations are executed using `gqt_hrms_migration_user` (the schema owner).
+2. Because the migration role owns the table, PostgreSQL permits all DDL operations (`ALTER TABLE`, `ADD COLUMN`, `CREATE INDEX`).
+3. The runtime role `gqt_hrms_app_user` remains permanently restricted to `SELECT, INSERT`, preserving runtime immutability without manual privilege intervention.
 
 ---
 

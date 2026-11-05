@@ -37,6 +37,21 @@ urlpatterns = [
                 # Creative Studio: Requisitions, Versioning, Compliance & SoD Sign-Off
                 path("creatives/", include("apps.creatives.urls", namespace="creatives")),
 
+                # Student Placement Operations & Eligibility Engine (MOD-005)
+                path("students/", include("apps.students.urls", namespace="students")),
+
+                # Student Preparation, Assessments & Step 23 Gate (MOD-006)
+                path("preparation/", include("apps.preparation.urls", namespace="preparation")),
+
+                # Candidate Submissions & Profile Dispatch (MOD-007)
+                path("submissions/", include("apps.submissions.urls", namespace="submissions")),
+
+                # Placement Drives & Multi-Round Interviews (MOD-008)
+                path("interviews/", include("apps.interviews.urls", namespace="interviews")),
+
+                # Placement Management, Offers & Joining Verification (MOD-009)
+                path("placements/", include("apps.placements.urls", namespace="placements")),
+
                 # OpenAPI 3.1 Documentation
                 path("schema/", SpectacularAPIView.as_view(), name="schema"),
                 path(

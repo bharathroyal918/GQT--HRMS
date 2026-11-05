@@ -72,12 +72,12 @@ Regular restoration drills must be conducted quarterly in an isolated staging en
 
 2. **Provision Disposable Test Database:**
    ```bash
-   sudo -u postgres createdb -O gqt_hrms_app_user gqt_hrms_restore_test
+   sudo -u postgres createdb -O gqt_hrms_migration_user gqt_hrms_restore_test
    ```
 
 3. **Restore Backup into Test Database:**
    ```bash
-   gunzip -c /var/backups/gqt-hrms/postgres/gqt_hrms_db_YYYYMMDD_HHMMSS.sql.gz | psql -U gqt_hrms_app_user -d gqt_hrms_restore_test
+   gunzip -c /var/backups/gqt-hrms/postgres/gqt_hrms_db_YYYYMMDD_HHMMSS.sql.gz | psql -U gqt_hrms_migration_user -d gqt_hrms_restore_test
    ```
 
 4. **Execute Sanity Verification Checks:**
@@ -163,12 +163,11 @@ In the event of total server loss:
 
 1. [ ] Provision fresh Ubuntu 24.04 LTS instance with static IP.
 2. [ ] Follow `docs/production/deployment-runbook.md` to install PostgreSQL 16, Python 3.14, Node.js 22, Nginx.
-3. [ ] Configure PostgreSQL application user `gqt_hrms_app_user` and database `gqt_hrms`.
+3. [ ] Configure PostgreSQL roles (`gqt_hrms_migration_user`, `gqt_hrms_app_user`) and database `gqt_hrms` per `docs/production/deployment-runbook.md`.
 4. [ ] Retrieve latest verified database backup `.sql.gz` and `.sha256` from off-site storage.
 5. [ ] Verify SHA-256 checksum: `sha256sum -c gqt_hrms_db_*.sql.gz.sha256`.
-6. [ ] Restore database: `gunzip -c gqt_hrms_db_*.sql.gz | psql -U gqt_hrms_app_user -d gqt_hrms`.
-7. [ ] Execute audit-log immutability SQL role hardening:
-       `REVOKE UPDATE, DELETE, TRUNCATE ON TABLE core_audit_log FROM gqt_hrms_app_user;`
+6. [ ] Restore database as schema owner: `gunzip -c gqt_hrms_db_*.sql.gz | psql -U gqt_hrms_migration_user -d gqt_hrms`.
+7. [ ] Execute audit-log immutability SQL role hardening (revoke `UPDATE, DELETE, TRUNCATE` on `core_audit_log` from `gqt_hrms_app_user`).
 8. [ ] Restore private media directory `/srv/gqt-hrms/media/private` from latest verified media tarball.
 9. [ ] Run Django migration check: `python manage.py showmigrations`.
 10. [ ] Start Gunicorn systemd service and reload Nginx.
