@@ -10,6 +10,7 @@ Architectural Standards:
 from pathlib import Path
 import os
 from datetime import timedelta
+from corsheaders.defaults import default_headers
 import environ
 
 # Paths: BASE_DIR is backend/
@@ -290,6 +291,10 @@ CORS_ALLOWED_ORIGINS = env.list(
     default=["http://localhost:5173", "http://127.0.0.1:5173"],
 )
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = (
+    *default_headers,
+    "x-correlation-id",
+)
 CSRF_TRUSTED_ORIGINS = env.list(
     "CSRF_TRUSTED_ORIGINS",
     default=["http://localhost:5173", "http://127.0.0.1:5173"],
